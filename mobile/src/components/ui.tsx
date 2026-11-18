@@ -133,13 +133,15 @@ export function Logo({ size = 64 }: { size?: number }) {
 /** Lotus + KESHAV wordmark + trade line. `stacked` = centred (splash/login), otherwise inline for headers. */
 export function Brand({ light, stacked, size = 1 }: { light?: boolean; stacked?: boolean; size?: number }) {
   const word = { fontFamily: SERIF, fontWeight: '700' as const, letterSpacing: 2 * size, color: light ? C.goldLight : C.bronze };
+  const home = { fontWeight: '700' as const, letterSpacing: 3 * size, color: light ? C.goldLight : C.bronze };
   const line = { fontSize: 6.5 * size, letterSpacing: 1.4 * size, color: light ? '#E6CFA3' : C.gold2 };
   if (stacked) {
     return (
       <View style={{ alignItems: 'center' }}>
         <Logo size={92 * size} />
         <Text style={[word, { fontSize: 38 * size, marginTop: 4 }]}>KESHAV</Text>
-        <Text style={[line, { marginTop: 4 }]}>ARCHITECTURAL · HARDWARE · PAINT · ELECTRICAL</Text>
+        <Text style={[home, { fontSize: 12 * size, marginTop: 2 }]}>HOME SOLUTION</Text>
+        <Text style={[line, { marginTop: 6 }]}>CONSTRUCTION SOLUTION · HARDWARE · PAINT · ELECTRICAL</Text>
       </View>
     );
   }
@@ -148,7 +150,7 @@ export function Brand({ light, stacked, size = 1 }: { light?: boolean; stacked?:
       <Logo size={34} />
       <View>
         <Text style={[word, { fontSize: 17, letterSpacing: 1.5 }]}>KESHAV</Text>
-        <Text style={line}>ARCHITECTURAL · HARDWARE · PAINT · ELECTRICAL</Text>
+        <Text style={[home, { fontSize: 7.5 }]}>HOME SOLUTION</Text>
       </View>
     </Row>
   );

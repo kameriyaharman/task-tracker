@@ -16,7 +16,7 @@ $code = strtoupper($argv[1] ?? getenv('DEMO_COMPANY_CODE') ?: 'DEMO');
 if (Db::value('SELECT id FROM companies WHERE code = ?', [$code])) { echo "Demo company $code already exists.\n"; exit; }
 
 $d = fn(string $rel) => date('Y-m-d H:i:s', strtotime($rel));
-$cid = Db::insert('companies', ['code' => $code, 'name' => $code === 'KESHAV' ? 'Keshav Architectural Hardware' : 'Keshav Demo Team', 'shift_start' => '09:30:00', 'shift_end' => '18:30:00', 'whatsapp_enabled' => 1, 'gcal_enabled' => 1]);
+$cid = Db::insert('companies', ['code' => $code, 'name' => $code === 'KESHAV' ? 'Keshav Home Solution' : 'Keshav Demo Team', 'shift_start' => '09:30:00', 'shift_end' => '18:30:00', 'whatsapp_enabled' => 1, 'gcal_enabled' => 1]);
 
 $dept = [];
 foreach (['Sales', 'Accounts', 'Operations', 'Marketing', 'HR', 'Field'] as $n) $dept[$n] = Db::insert('departments', ['company_id' => $cid, 'name' => $n]);

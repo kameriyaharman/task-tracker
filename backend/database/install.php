@@ -23,11 +23,13 @@ Db::pdo()->exec(file_get_contents(__DIR__ . '/schema.sql'));
 echo "Schema OK\n";
 
 $code = strtoupper((string) (getenv('COMPANY_CODE') ?: 'KESHAV'));
+// Keep the company name in sync with COMPANY_NAME (rebrands)
+if (getenv('COMPANY_NAME')) Db::exec('UPDATE companies SET name = ? WHERE code = ?', [getenv('COMPANY_NAME'), $code]);
 if (!Db::value('SELECT id FROM companies WHERE code = ?', [$code])) {
     $pass = getenv('ADMIN_PASSWORD');
     if (!$pass) { fwrite(STDERR, "ADMIN_PASSWORD not set — skipping owner creation\n"); }
     else {
-        $cid = Db::insert('companies', ['code' => $code, 'name' => getenv('COMPANY_NAME') ?: 'Keshav Architectural Hardware']);
+        $cid = Db::insert('companies', ['code' => $code, 'name' => getenv('COMPANY_NAME') ?: 'Keshav Home Solution']);
         foreach (['Sales', 'Accounts', 'Store', 'Delivery', 'Marketing', 'HR'] as $d) Db::insert('departments', ['company_id' => $cid, 'name' => $d]);
         foreach ([['casual', 'Casual leave', 12, 0], ['sick', 'Sick leave', 8, 0], ['earned', 'Earned leave', 15, 30], ['compoff', 'Comp-off', 0, 0]] as [$c, $n, $q, $cf]) {
             Db::insert('leave_types', ['company_id' => $cid, 'code' => $c, 'name' => $n, 'yearly_quota' => $q, 'carry_forward_max' => $cf]);

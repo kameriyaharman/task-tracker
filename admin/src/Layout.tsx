@@ -13,12 +13,11 @@ const nav: { group: string; items: [string, string, string, boolean?][] }[] = [
 ];
 
 export default function Layout() {
-  const { me, logout } = useAuth();
+  const { logout } = useAuth();
   return (
     <div className="shell">
       <aside className="side">
         <Brand />
-        <div className="company">{me?.company_name}</div>
         <nav className="nav">
           {nav.map((g) => (
             <div key={g.group}>

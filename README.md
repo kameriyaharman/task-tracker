@@ -1,6 +1,6 @@
-# Keshav — Team, Tasks & Attendance
+# Keshav Home Solution — Team, Tasks & Attendance
 
-*Architectural · Hardware · Paint · Electrical*
+*Construction Solution · Hardware · Paint · Electrical*
 
 Task delegation, recurring tasks, selfie + geofence attendance, leave & approvals, timesheets, chat with voice notes,
 WhatsApp alerts, goals, performance & rewards, live location — as an **Android + iOS app** and a **web admin panel**.
@@ -12,7 +12,7 @@ mobile/    Expo (React Native) app — one codebase for Android and iOS
 ```
 
 ## Branding
-Gold-bronze lotus + KESHAV wordmark, walnut brown and cream marble palette.
+Gold-bronze lotus + KESHAV / HOME SOLUTION wordmark, walnut brown and cream marble palette.
 Logo source: `admin/src/lotus.svg`; app icons/splash in `mobile/assets/`; login banner `admin/public/brand-banner.jpg`.
 Colours live in `admin/src/styles.css` (`:root`) and `mobile/src/lib/theme.ts`.
 

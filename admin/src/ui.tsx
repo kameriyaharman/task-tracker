@@ -37,13 +37,14 @@ import lotus from './lotus.svg';
 
 export const Logo = ({ size = 40 }: { size?: number }) => <img src={lotus} alt="Keshav" width={size} height={size * 0.62} style={{ display: 'block' }} />;
 
-/** Keshav wordmark: lotus over KESHAV + trade line, as on the brand board. */
+/** Keshav Home Solution wordmark: lotus over KESHAV, HOME SOLUTION and the trade line, as on the brand board. */
 export function Brand({ big, light = true }: { big?: boolean; light?: boolean }) {
   return (
     <div className={`brand${big ? ' big' : ''}${light ? '' : ' dark'}`}>
       <Logo size={big ? 74 : 40} />
       <b>KESHAV</b>
-      <small>ARCHITECTURAL · HARDWARE · PAINT · ELECTRICAL</small>
+      <em>HOME SOLUTION</em>
+      <small>CONSTRUCTION SOLUTION · HARDWARE · PAINT · ELECTRICAL</small>
     </div>
   );
 }
