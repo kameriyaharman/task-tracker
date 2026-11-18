@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 import {
-  ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View,
   type TextInputProps, type StyleProp, type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { C, R, avatarColor, statusColor } from '../lib/theme';
+import { C, R, SERIF, avatarColor, statusColor } from '../lib/theme';
 import { dueLabel, overdueLabel } from '../lib/format';
 import { useAuth } from '../lib/auth';
 
@@ -16,7 +16,7 @@ export function Screen({ children, title, right, back, refreshing, onRefresh, sc
     <ScrollView
       contentContainerStyle={[pad && { padding: 16 }, { paddingBottom: 40 }]}
       keyboardShouldPersistTaps="handled"
-      refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={C.indigo} /> : undefined}
+      refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={C.gold} /> : undefined}
     >
       {children}
     </ScrollView>
@@ -58,8 +58,8 @@ export function Badge({ s: st, label }: { s: string; label: string }) {
 export function Button({ title, onPress, variant = 'primary', disabled, loading, style, small }: {
   title: string; onPress?: () => void; variant?: 'primary' | 'ghost' | 'danger' | 'ok' | 'white'; disabled?: boolean; loading?: boolean; style?: StyleProp<ViewStyle>; small?: boolean;
 }) {
-  const bg = { primary: C.indigo, ghost: '#fff', danger: C.redSoft, ok: C.greenSoft, white: '#fff' }[variant];
-  const fg = { primary: '#fff', ghost: C.text, danger: C.red, ok: C.green, white: C.navy }[variant];
+  const bg = { primary: C.gold, ghost: '#fff', danger: C.redSoft, ok: C.greenSoft, white: '#fff' }[variant];
+  const fg = { primary: '#fff', ghost: C.text, danger: C.red, ok: C.green, white: C.walnut }[variant];
   return (
     <Pressable
       disabled={disabled || loading}
@@ -75,7 +75,7 @@ export function Input({ label, style, ...p }: TextInputProps & { label?: string 
   return (
     <View style={[s.inputWrap, style as any]}>
       {label && <Text style={s.inputLabel}>{label}</Text>}
-      <TextInput placeholderTextColor="#B3B1BF" style={s.input} {...p} />
+      <TextInput placeholderTextColor="#B9A994" style={s.input} {...p} />
     </View>
   );
 }
@@ -98,7 +98,7 @@ export function Chips<V extends string | number>({ items, value, onChange, multi
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 2 }}>
       {items.map(([v, l, n]) => (
         <Pressable key={String(v)} onPress={() => onChange(multi && Array.isArray(value) ? (on(v) ? value.filter((x) => x !== v) : [...value, v]) : v)}
-          style={[s.chip, on(v) && { backgroundColor: C.navy, borderColor: C.navy }]}>
+          style={[s.chip, on(v) && { backgroundColor: C.walnut, borderColor: C.walnut }]}>
           <Text style={{ color: on(v) ? '#fff' : C.text, fontSize: 13 }}>{l}{n !== undefined ? <Text style={{ fontWeight: '700' }}> {n}</Text> : null}</Text>
         </Pressable>
       ))}
@@ -107,10 +107,10 @@ export function Chips<V extends string | number>({ items, value, onChange, multi
 }
 
 export const Bar = ({ pct, color }: { pct: number; color?: string }) => (
-  <View style={s.bar}><View style={{ width: `${Math.max(0, Math.min(100, pct))}%`, height: '100%', backgroundColor: color ?? C.indigo, borderRadius: 6 }} /></View>
+  <View style={s.bar}><View style={{ width: `${Math.max(0, Math.min(100, pct))}%`, height: '100%', backgroundColor: color ?? C.gold, borderRadius: 6 }} /></View>
 );
 
-export const Loading = () => <View style={{ padding: 40 }}><ActivityIndicator color={C.indigo} /></View>;
+export const Loading = () => <View style={{ padding: 40 }}><ActivityIndicator color={C.gold} /></View>;
 export const Empty = ({ text }: { text: string }) => <Text style={{ textAlign: 'center', color: C.muted, padding: 30 }}>{text}</Text>;
 export const ErrorText = ({ msg }: { msg?: string | null }) => (msg ? <View style={s.err}><Text style={{ color: C.red }}>{msg}</Text></View> : null);
 
@@ -123,21 +123,32 @@ export const Section = ({ title, right, children }: { title: string; right?: Rea
 
 export const Row = ({ children, style, gap = 10 }: { children: ReactNode; style?: StyleProp<ViewStyle>; gap?: number }) => <View style={[s.row, { gap }, style]}>{children}</View>;
 
+const lotus = require('../../assets/logo.png');
+
+/** Keshav lotus mark (gold). `size` = width; the mark is ~0.62 as tall as wide. */
 export function Logo({ size = 64 }: { size?: number }) {
-  return (
-    <View style={{ width: size, height: size, borderRadius: size * 0.26, backgroundColor: C.indigo, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: '#fff', fontSize: size * 0.55, fontWeight: '800', marginTop: -size * 0.04 }}>✓</Text>
-    </View>
-  );
+  return <Image source={lotus} style={{ width: size, height: size * 0.62 }} resizeMode="contain" accessibilityLabel="Keshav" />;
 }
 
-export function Brand({ light }: { light?: boolean }) {
+/** Lotus + KESHAV wordmark + trade line. `stacked` = centred (splash/login), otherwise inline for headers. */
+export function Brand({ light, stacked, size = 1 }: { light?: boolean; stacked?: boolean; size?: number }) {
+  const word = { fontFamily: SERIF, fontWeight: '700' as const, letterSpacing: 2 * size, color: light ? C.goldLight : C.bronze };
+  const line = { fontSize: 6.5 * size, letterSpacing: 1.4 * size, color: light ? '#E6CFA3' : C.gold2 };
+  if (stacked) {
+    return (
+      <View style={{ alignItems: 'center' }}>
+        <Logo size={92 * size} />
+        <Text style={[word, { fontSize: 38 * size, marginTop: 4 }]}>KESHAV</Text>
+        <Text style={[line, { marginTop: 4 }]}>ARCHITECTURAL · HARDWARE · PAINT · ELECTRICAL</Text>
+      </View>
+    );
+  }
   return (
     <Row gap={8}>
-      <Logo size={26} />
+      <Logo size={34} />
       <View>
-        <Text style={{ fontWeight: '700', color: light ? '#fff' : C.text, fontSize: 13 }}>WorkTrack</Text>
-        <Text style={{ fontSize: 6.5, letterSpacing: 1.6, color: light ? '#c9c7f5' : C.muted }}>TASKS · ATTENDANCE · TEAM</Text>
+        <Text style={[word, { fontSize: 17, letterSpacing: 1.5 }]}>KESHAV</Text>
+        <Text style={line}>ARCHITECTURAL · HARDWARE · PAINT · ELECTRICAL</Text>
       </View>
     </Row>
   );
@@ -171,7 +182,7 @@ export const s = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 10 },
   back: { fontSize: 32, color: C.text, marginTop: -6, paddingRight: 4 },
   title: { fontSize: 20, fontWeight: '700', color: C.text, flexShrink: 1 },
-  card: { backgroundColor: C.card, borderRadius: R.lg, padding: 14, borderWidth: 1, borderColor: '#EFEEE9' },
+  card: { backgroundColor: C.card, borderRadius: R.lg, padding: 14, borderWidth: 1, borderColor: '#EDE3D4' },
   badge: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 20, alignSelf: 'flex-start' },
   btn: { borderRadius: R.md, paddingVertical: 14, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center' },
   btnSm: { paddingVertical: 7, paddingHorizontal: 12, borderRadius: 9 },
@@ -179,7 +190,7 @@ export const s = StyleSheet.create({
   inputLabel: { fontSize: 11, color: C.muted, marginBottom: 2 },
   input: { fontSize: 15, color: C.text, paddingVertical: 2 },
   chip: { paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: C.line },
-  bar: { height: 6, backgroundColor: '#ECEAF6', borderRadius: 6, overflow: 'hidden' },
+  bar: { height: 6, backgroundColor: '#EFE3CF', borderRadius: 6, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center' },
   err: { backgroundColor: C.redSoft, padding: 10, borderRadius: 10, marginBottom: 10 },
 });

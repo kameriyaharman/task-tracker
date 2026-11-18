@@ -17,7 +17,7 @@ export default function AiSuggestions() {
 
   return (
     <Screen back title={`✨ ${t('ai_suggestions')}`} refreshing={loading} onRefresh={reload}>
-      <Card style={{ backgroundColor: C.indigoSoft, borderColor: C.indigoSoft, marginBottom: 12 }}>
+      <Card style={{ backgroundColor: C.goldSoft, borderColor: C.goldSoft, marginBottom: 12 }}>
         <T>✨ Based on last month's work, these tasks are due soon:</T>
       </Card>
       <ErrorText msg={err} />

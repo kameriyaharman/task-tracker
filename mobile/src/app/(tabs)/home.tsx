@@ -25,7 +25,7 @@ export default function Home() {
         <Pressable onPress={() => router.push('/notifications')} hitSlop={10}>
           <Text style={{ fontSize: 20 }}>🔔</Text>
           {!!data?.unread_notifications && (
-            <View style={{ position: 'absolute', top: -4, right: -6, backgroundColor: C.indigo, borderRadius: 9, paddingHorizontal: 5 }}>
+            <View style={{ position: 'absolute', top: -4, right: -6, backgroundColor: C.gold, borderRadius: 9, paddingHorizontal: 5 }}>
               <Text style={{ color: '#fff', fontSize: 10 }}>{data.unread_notifications}</Text>
             </View>
           )}
@@ -37,13 +37,13 @@ export default function Home() {
           <T b size={22}>{t('hi')} {first(data.user.name)} 👋</T>
           <T muted>{dayDate(new Date())}</T>
 
-          <View style={{ backgroundColor: C.navy, borderRadius: 18, padding: 16, marginTop: 14, flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ backgroundColor: C.walnut, borderRadius: 18, padding: 16, marginTop: 14, flexDirection: 'row', alignItems: 'center' }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: '#C9C7F5', fontSize: 10.5, letterSpacing: 1 }}>{a?.punch_in_at ? t('punched_in') : t('not_punched')}</Text>
+              <Text style={{ color: '#E6CFA3', fontSize: 10.5, letterSpacing: 1 }}>{a?.punch_in_at ? t('punched_in') : t('not_punched')}</Text>
               {a?.punch_in_at ? (
                 <>
                   <Text style={{ color: '#fff', fontSize: 26, fontWeight: '700', marginVertical: 2 }}>{timeOf(a.punch_in_at)}</Text>
-                  <Text style={{ color: '#C9C7F5', fontSize: 12 }}>{a.place ?? t(a.mode)} · {hm(a.worked_minutes)} {t('today_hours')}</Text>
+                  <Text style={{ color: '#E6CFA3', fontSize: 12 }}>{a.place ?? t(a.mode)} · {hm(a.worked_minutes)} {t('today_hours')}</Text>
                 </>
               ) : <Text style={{ color: '#fff', fontSize: 16, marginTop: 6 }}>{a?.status === 'leave' ? t('leave') : '—'}</Text>}
             </View>
@@ -61,7 +61,7 @@ export default function Home() {
             ))}
           </View>
 
-          <Section title={t('todays_tasks')} right={<Text style={{ color: C.indigo, fontWeight: '600' }} onPress={() => router.push('/tasks')}>{t('see_all')}</Text>}>
+          <Section title={t('todays_tasks')} right={<Text style={{ color: C.gold, fontWeight: '600' }} onPress={() => router.push('/tasks')}>{t('see_all')}</Text>}>
             {data.tasks.length ? data.tasks.map((x: any) => <TaskCard key={x.id} t={x} />) : <Empty text={t('nothing_here')} />}
           </Section>
 

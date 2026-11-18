@@ -1,28 +1,28 @@
 {
   "expo": {
-    "name": "WorkTrack",
-    "slug": "worktrack",
-    "scheme": "worktrack",
+    "name": "Keshav",
+    "slug": "keshav",
+    "scheme": "keshav",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "in.worktrack.app",
+      "bundleIdentifier": "in.keshav.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "WorkTrack uses the camera for punch-in selfies and task photo proof.",
-        "NSLocationWhenInUseUsageDescription": "WorkTrack checks your location when you punch in and when you complete field tasks.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "With your consent, WorkTrack shares your location with your manager only between punch-in and punch-out.",
-        "NSMicrophoneUsageDescription": "WorkTrack records voice notes for tasks and chat.",
-        "NSFaceIDUsageDescription": "Unlock WorkTrack with Face ID.",
+        "NSCameraUsageDescription": "Keshav uses the camera for punch-in selfies and task photo proof.",
+        "NSLocationWhenInUseUsageDescription": "Keshav checks your location when you punch in and when you complete field tasks.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "With your consent, Keshav shares your location with your manager only between punch-in and punch-out.",
+        "NSMicrophoneUsageDescription": "Keshav records voice notes for tasks and chat.",
+        "NSFaceIDUsageDescription": "Unlock Keshav with Face ID.",
         "UIBackgroundModes": ["location"]
       }
     },
     "android": {
-      "package": "in.worktrack.app",
+      "package": "in.keshav.app",
       "adaptiveIcon": {
-        "backgroundColor": "#1C1A4A",
+        "backgroundColor": "#2B1A10",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -46,20 +46,20 @@
       "expo-router",
       "expo-secure-store",
       "expo-localization",
-      ["expo-audio", { "microphonePermission": "WorkTrack records voice notes for tasks and chat." }],
-      ["expo-image-picker", { "cameraPermission": "WorkTrack uses the camera for punch-in selfies and task photo proof." }],
+      ["expo-audio", { "microphonePermission": "Keshav records voice notes for tasks and chat." }],
+      ["expo-image-picker", { "cameraPermission": "Keshav uses the camera for punch-in selfies and task photo proof." }],
       ["expo-location", {
-        "locationWhenInUsePermission": "WorkTrack checks your location when you punch in and when you complete field tasks.",
-        "locationAlwaysAndWhenInUsePermission": "With your consent, WorkTrack shares your location with your manager only between punch-in and punch-out.",
+        "locationWhenInUsePermission": "Keshav checks your location when you punch in and when you complete field tasks.",
+        "locationAlwaysAndWhenInUsePermission": "With your consent, Keshav shares your location with your manager only between punch-in and punch-out.",
         "isAndroidBackgroundLocationEnabled": true,
         "isAndroidForegroundServiceEnabled": true
       }],
-      ["expo-notifications", { "color": "#5B5BD6" }],
-      ["expo-local-authentication", { "faceIDPermission": "Unlock WorkTrack with Face ID." }],
-      ["expo-splash-screen", { "image": "./assets/splash-icon.png", "imageWidth": 200, "backgroundColor": "#1C1A4A" }]
+      ["expo-notifications", { "color": "#A8722C" }],
+      ["expo-local-authentication", { "faceIDPermission": "Unlock Keshav with Face ID." }],
+      ["expo-splash-screen", { "image": "./assets/splash-icon.png", "imageWidth": 200, "backgroundColor": "#2B1A10" }]
     ],
     "extra": {
-      "apiUrl": "https://app.worktrack.in/api",
+      "apiUrl": "https://app.yourdomain.com/api",
       "eas": { "projectId": "" }
     }
   }

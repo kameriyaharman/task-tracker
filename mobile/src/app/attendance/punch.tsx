@@ -52,9 +52,9 @@ export default function Punch() {
     <Screen back title={out ? t('punch_out') : t('punch_in')}>
       {!out && <Chips items={[['office', t('office')], ['field', t('field')], ['wfh', t('wfh')]]} value={mode} onChange={setMode} />}
       <Pressable onPress={async () => setSelfie(await takePhoto(true))}
-        style={{ marginTop: 18, alignSelf: 'center', width: 220, height: 220, borderRadius: 110, overflow: 'hidden', backgroundColor: C.indigoSoft, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: selfie ? C.green : C.indigo }}>
+        style={{ marginTop: 18, alignSelf: 'center', width: 220, height: 220, borderRadius: 110, overflow: 'hidden', backgroundColor: C.goldSoft, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: selfie ? C.green : C.gold }}>
         {selfie ? <Image source={{ uri: selfie.uri }} style={{ width: '100%', height: '100%' }} /> : (
-          <View style={{ alignItems: 'center' }}><Text style={{ fontSize: 46 }}>🤳</Text><T style={{ marginTop: 6 }} color={C.indigo}>{t('take_selfie')}</T></View>
+          <View style={{ alignItems: 'center' }}><Text style={{ fontSize: 46 }}>🤳</Text><T style={{ marginTop: 6 }} color={C.gold}>{t('take_selfie')}</T></View>
         )}
       </Pressable>
 

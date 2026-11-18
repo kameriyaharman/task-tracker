@@ -33,15 +33,22 @@ export function Icon({ name, size = 16 }: { name: keyof typeof paths | string; s
   );
 }
 
-export const Logo = ({ size = 20 }: { size?: number }) => (
-  <div className="brand-logo">
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12.5l4.5 4.5L19 7.5" />
-    </svg>
-  </div>
-);
+import lotus from './lotus.svg';
 
-const palette = ['#5b5bd6', '#0ea5e9', '#16a34a', '#d97706', '#db2777', '#7c3aed', '#0891b2', '#dc2626'];
+export const Logo = ({ size = 40 }: { size?: number }) => <img src={lotus} alt="Keshav" width={size} height={size * 0.62} style={{ display: 'block' }} />;
+
+/** Keshav wordmark: lotus over KESHAV + trade line, as on the brand board. */
+export function Brand({ big, light = true }: { big?: boolean; light?: boolean }) {
+  return (
+    <div className={`brand${big ? ' big' : ''}${light ? '' : ' dark'}`}>
+      <Logo size={big ? 74 : 40} />
+      <b>KESHAV</b>
+      <small>ARCHITECTURAL · HARDWARE · PAINT · ELECTRICAL</small>
+    </div>
+  );
+}
+
+const palette = ['#A8722C', '#6B3A1C', '#B5562F', '#7A6A2E', '#2F6B5E', '#8C5A22', '#5A3820', '#9C4A3A'];
 export const initialsOf = (name = '') =>
   name.trim().split(/\s+/).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
 

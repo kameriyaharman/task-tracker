@@ -67,7 +67,7 @@ export default function NewTask() {
   };
 
   return (
-    <Screen back title={t('new_task')} right={<Text style={{ color: C.indigo, fontWeight: '600' }} onPress={() => router.replace('/task/voice')}>🎤 {t('speak_task')}</Text>}>
+    <Screen back title={t('new_task')} right={<Text style={{ color: C.gold, fontWeight: '600' }} onPress={() => router.replace('/task/voice')}>🎤 {t('speak_task')}</Text>}>
       <ErrorText msg={err} />
       <Input label={t('task')} value={title} onChangeText={setTitle} placeholder="Prepare quotation for Mehta Builders" autoFocus={!p.title} />
 
@@ -116,7 +116,7 @@ export default function NewTask() {
 
       <Card style={{ marginBottom: 16, paddingVertical: 6 }}>
         <Row style={{ justifyContent: 'space-between', paddingVertical: 6 }}><T>🟢 {t('send_whatsapp')}</T><Switch value={whatsapp} onValueChange={setWhatsapp} trackColor={{ true: C.green }} /></Row>
-        <Row style={{ justifyContent: 'space-between', paddingVertical: 6 }}><T>⏰ {t('remind_before')}</T><Switch value={remind} onValueChange={setRemind} trackColor={{ true: C.indigo }} /></Row>
+        <Row style={{ justifyContent: 'space-between', paddingVertical: 6 }}><T>⏰ {t('remind_before')}</T><Switch value={remind} onValueChange={setRemind} trackColor={{ true: C.gold }} /></Row>
       </Card>
 
       <Button title={t('assign_task')} onPress={save} loading={busy} disabled={!title.trim() || !assignee || voice.recording} />
@@ -134,4 +134,4 @@ export default function NewTask() {
 }
 
 const pill = { borderWidth: 1, borderColor: C.line, backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7 } as const;
-const pillOn = { borderColor: C.indigo, backgroundColor: C.indigoSoft } as const;
+const pillOn = { borderColor: C.gold, backgroundColor: C.goldSoft } as const;

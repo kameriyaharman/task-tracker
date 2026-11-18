@@ -52,7 +52,7 @@ export default function Complete() {
         <Row gap={10} style={{ flexWrap: 'wrap' }}>
           {photos.map((p, i) => <Image key={i} source={{ uri: p.uri }} style={{ width: 90, height: 90, borderRadius: 12 }} />)}
           <Pressable onPress={async () => { const p = await takePhoto(); if (p) setPhotos([...photos, p]); }}
-            style={{ width: 90, height: 90, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: C.indigo, alignItems: 'center', justifyContent: 'center', backgroundColor: C.indigoSoft }}>
+            style={{ width: 90, height: 90, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: C.gold, alignItems: 'center', justifyContent: 'center', backgroundColor: C.goldSoft }}>
             <Text style={{ fontSize: 26 }}>📷</Text>
           </Pressable>
         </Row>

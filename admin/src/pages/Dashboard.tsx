@@ -28,7 +28,7 @@ export default function Dashboard() {
           <div className="grid g21">
             <div className="card">
               <h3>Tasks completed vs created · last 8 weeks
-                <span className="legend"><span><i style={{ background: '#7c7cf0' }} />Completed</span><span><i style={{ background: 'var(--navy)' }} />Created</span></span>
+                <span className="legend"><span><i style={{ background: '#D4A24C' }} />Completed</span><span><i style={{ background: 'var(--walnut)' }} />Created</span></span>
               </h3>
               <div className="bars">
                 {d.weekly.map((w: any) => (
@@ -68,7 +68,7 @@ export default function Dashboard() {
               <div className="grid g2">
                 {[['On time', d.attendance_today.on_time], ['Late', d.attendance_today.late], ['Field', d.attendance_today.field],
                   ['Leave / absent', `${d.attendance_today.leave} / ${d.attendance_today.absent}`]].map(([l, v]) => (
-                  <div key={l} style={{ background: '#f6f5f1', borderRadius: 10, padding: '10px 12px' }}>
+                  <div key={l} style={{ background: '#F7F1E7', borderRadius: 10, padding: '10px 12px' }}>
                     <div className="muted">{l}</div><b style={{ fontSize: 18 }}>{v}</b>
                   </div>
                 ))}

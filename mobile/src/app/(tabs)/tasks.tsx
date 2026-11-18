@@ -16,11 +16,11 @@ export default function Tasks() {
 
   return (
     <Screen title={t('tasks')} refreshing={loading} onRefresh={reload}
-      right={<Text style={{ color: C.indigo, fontWeight: '600', fontSize: 15 }} onPress={() => router.push('/task/voice')}>🎤 {t('voice_note').split(' ')[0]}</Text>}>
+      right={<Text style={{ color: C.gold, fontWeight: '600', fontSize: 15 }} onPress={() => router.push('/task/voice')}>🎤 {t('voice_note').split(' ')[0]}</Text>}>
       <View style={{ flexDirection: 'row', backgroundColor: '#fff', borderRadius: 12, padding: 4, marginBottom: 12, borderWidth: 1, borderColor: C.line }}>
         {([['to_me', t('to_me')], ['by_me', t('by_me')], ...(isManager ? [['team', t('team')]] : [])] as [string, string][]).map(([k, l]) => (
           <Text key={k} onPress={() => setScope(k)}
-            style={{ flex: 1, textAlign: 'center', paddingVertical: 8, borderRadius: 9, overflow: 'hidden', backgroundColor: scope === k ? C.indigoSoft : 'transparent', color: scope === k ? C.indigo : C.text, fontWeight: scope === k ? '600' : '400' }}>{l}</Text>
+            style={{ flex: 1, textAlign: 'center', paddingVertical: 8, borderRadius: 9, overflow: 'hidden', backgroundColor: scope === k ? C.goldSoft : 'transparent', color: scope === k ? C.gold : C.text, fontWeight: scope === k ? '600' : '400' }}>{l}</Text>
         ))}
       </View>
       <Chips

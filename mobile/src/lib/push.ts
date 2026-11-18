@@ -13,7 +13,7 @@ Notifications.setNotificationHandler({
 export async function registerPush() {
   if (!Device.isDevice) return;
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', { name: 'WorkTrack', importance: Notifications.AndroidImportance.HIGH });
+    await Notifications.setNotificationChannelAsync('default', { name: 'Keshav', importance: Notifications.AndroidImportance.HIGH });
   }
   let { status } = await Notifications.getPermissionsAsync();
   if (status !== 'granted') status = (await Notifications.requestPermissionsAsync()).status;

@@ -14,8 +14,8 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: C.indigo,
-        tabBarInactiveTintColor: '#9A98AA',
+        tabBarActiveTintColor: C.gold,
+        tabBarInactiveTintColor: '#A8957F',
         tabBarStyle: { height: 64, paddingTop: 6, paddingBottom: 8, borderTopColor: C.line },
         tabBarLabelStyle: { fontSize: 11 },
       }}
@@ -28,10 +28,10 @@ export default function TabsLayout() {
           title: t('task'),
           tabBarButton: () => (
             <Pressable onPress={() => router.push('/task/new')} style={{ flex: 1, alignItems: 'center' }} accessibilityLabel={t('new_task')}>
-              <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: C.navy, alignItems: 'center', justifyContent: 'center', marginTop: -22, borderWidth: 4, borderColor: '#fff' }}>
+              <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: C.walnut, alignItems: 'center', justifyContent: 'center', marginTop: -22, borderWidth: 4, borderColor: '#fff' }}>
                 <Text style={{ color: '#fff', fontSize: 26, marginTop: -2 }}>+</Text>
               </View>
-              <Text style={{ fontSize: 11, color: '#9A98AA', marginTop: 1 }}>{t('task')}</Text>
+              <Text style={{ fontSize: 11, color: '#A8957F', marginTop: 1 }}>{t('task')}</Text>
             </Pressable>
           ),
         }}

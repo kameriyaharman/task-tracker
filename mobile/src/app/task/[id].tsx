@@ -61,7 +61,7 @@ export default function TaskDetail() {
             {task.checklist.map((c: any) => (
               <Pressable key={c.id} disabled={done} onPress={() => act(`/tasks/${task.id}/checklist/${c.id}`, { is_done: !+c.is_done }, 'PATCH')}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11 }}>
-                <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: +c.is_done ? C.indigo : '#CFCDD9', backgroundColor: +c.is_done ? C.indigo : '#fff', alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: +c.is_done ? C.gold : '#D8C9B3', backgroundColor: +c.is_done ? C.gold : '#fff', alignItems: 'center', justifyContent: 'center' }}>
                   {+c.is_done ? <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>✓</Text> : null}
                 </View>
                 <T style={{ textDecorationLine: +c.is_done ? 'line-through' : 'none', color: +c.is_done ? C.muted : C.text }}>{c.label}</T>
@@ -106,7 +106,7 @@ export default function TaskDetail() {
           {task.status === 'not_started' && <Button variant="ghost" title={t('start')} onPress={() => act(`/tasks/${task.id}/status`, { status: 'in_progress' })} />}
           {!task.proof_type && <Button variant="ghost" title={`${t('complete_task')} + 📷`} onPress={() => router.push(`/task/complete/${task.id}`)} />}
           <Button title={t('mark_complete')} onPress={() => (task.proof_type ? router.push(`/task/complete/${task.id}`) : act(`/tasks/${task.id}/complete`))} />
-          {isMine && task.due_at && <Text style={{ textAlign: 'center', color: C.indigo, marginTop: 4 }} onPress={askExtension}>Need more time?</Text>}
+          {isMine && task.due_at && <Text style={{ textAlign: 'center', color: C.gold, marginTop: 4 }} onPress={askExtension}>Need more time?</Text>}
         </View>
       )}
       {done && task.can_manage && <Button variant="ghost" title="Reopen" style={{ marginTop: 20 }} onPress={() => act(`/tasks/${task.id}/reopen`)} />}

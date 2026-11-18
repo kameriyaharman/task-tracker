@@ -30,7 +30,7 @@ export default function Me() {
   };
 
   const Item = ({ label, value, onPress, right }: { label: string; value?: string; onPress?: () => void; right?: React.ReactNode }) => (
-    <Pressable onPress={onPress} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F2F1EC' }}>
+    <Pressable onPress={onPress} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F1E8DB' }}>
       <T style={{ flex: 1 }}>{label}</T>
       {value && <T muted style={{ marginRight: 6 }}>{value}</T>}
       {right ?? (onPress ? <Text style={{ color: C.muted, fontSize: 18 }}>›</Text> : null)}
@@ -49,13 +49,13 @@ export default function Me() {
         <Item label={t('language')} value={LANGUAGES.find((l) => l.code === lang)?.native} onPress={() => router.push('/language')} />
         <Item label={t('notifications')} right={
           <Row gap={14}>
-            <Row gap={4}><T muted>App</T><Switch value={me.notify_app} onValueChange={(v) => patch({ notify_app: v })} trackColor={{ true: C.indigo }} /></Row>
+            <Row gap={4}><T muted>App</T><Switch value={me.notify_app} onValueChange={(v) => patch({ notify_app: v })} trackColor={{ true: C.gold }} /></Row>
             <Row gap={4}><T muted>WhatsApp</T><Switch value={me.notify_whatsapp} onValueChange={(v) => patch({ notify_whatsapp: v })} trackColor={{ true: C.green }} /></Row>
           </Row>
         } />
-        <Item label={t('share_location')} right={<Switch value={me.location_consent} onValueChange={(v) => { patch({ location_consent: v }); if (!v) stopTracking(); }} trackColor={{ true: C.indigo }} />} />
+        <Item label={t('share_location')} right={<Switch value={me.location_consent} onValueChange={(v) => { patch({ location_consent: v }); if (!v) stopTracking(); }} trackColor={{ true: C.gold }} />} />
         <Item label={t('google_calendar')} value={me.gcal_enabled ? t('connected') : '—'} onPress={() => router.push('/calendar')} />
-        <Item label={`${t('privacy')} · ${t('pin_bio')}`} right={<Switch value={bio} onValueChange={toggleBio} trackColor={{ true: C.indigo }} />} />
+        <Item label={`${t('privacy')} · ${t('pin_bio')}`} right={<Switch value={bio} onValueChange={toggleBio} trackColor={{ true: C.gold }} />} />
         <Item label={t('salary_docs')} onPress={() => Alert.alert(t('salary_docs'), 'Your HR team will upload payslips here.')} />
       </Card>
 

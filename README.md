@@ -1,4 +1,6 @@
-# WorkTrack — Tasks · Attendance · Team
+# Keshav — Team, Tasks & Attendance
+
+*Architectural · Hardware · Paint · Electrical*
 
 Task delegation, recurring tasks, selfie + geofence attendance, leave & approvals, timesheets, chat with voice notes,
 WhatsApp alerts, goals, performance & rewards, live location — as an **Android + iOS app** and a **web admin panel**.
@@ -8,6 +10,11 @@ backend/   PHP 8 + MySQL REST API (no Composer — runs on any cPanel / Hostinge
 admin/     React + Vite admin panel (static build, upload to hosting)
 mobile/    Expo (React Native) app — one codebase for Android and iOS
 ```
+
+## Branding
+Gold-bronze lotus + KESHAV wordmark, walnut brown and cream marble palette.
+Logo source: `admin/src/lotus.svg`; app icons/splash in `mobile/assets/`; login banner `admin/public/brand-banner.jpg`.
+Colours live in `admin/src/styles.css` (`:root`) and `mobile/src/lib/theme.ts`.
 
 ## 1. Backend on shared hosting (cPanel / Hostinger)
 
@@ -19,8 +26,8 @@ mobile/    Expo (React Native) app — one codebase for Android and iOS
 5. **Cron** (cPanel → Cron Jobs, every 5 minutes):
    `php /home/USERNAME/public_html/api/cron/run.php`
    — creates recurring tasks, sends "due in 1 hour" reminders and overdue alerts, closes forgotten punches.
-6. Check `https://yourdomain.com/api/` → `{"app":"WorkTrack API","db":true}`.
-7. **First company** — with SSH: `php database/seed.php` loads a demo company (code `ACME2026`, owner mobile
+6. Check `https://yourdomain.com/api/` → `{"app":"Keshav API","db":true}`.
+7. **First company** — with SSH: `php database/seed.php` loads a demo company (code `KESHAV`, owner mobile
    `9800011220`, password `admin123`). For a real company insert one row in `companies` and one owner in `users`
    (set `password_hash` with `php -r "echo password_hash('yourpass', PASSWORD_DEFAULT);"`), then add the rest from the admin panel.
 
@@ -76,7 +83,7 @@ cd admin && echo "VITE_API_URL=http://127.0.0.1:8080" > .env.local && npm run de
 # App
 cd mobile && echo "EXPO_PUBLIC_API_URL=http://<your-LAN-IP>:8080" > .env && npx expo start
 ```
-Demo logins (company `ACME2026`): owner 9800011220 / admin123 · employees 9800011221–26 (OTP from `storage/logs/otp.log`).
+Demo logins (company `KESHAV`): owner 9800011220 / admin123 · employees 9800011221–26 (OTP from `storage/logs/otp.log`).
 
 ## What's in each screen (from the design)
 

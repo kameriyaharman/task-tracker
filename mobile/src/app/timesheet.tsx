@@ -28,7 +28,7 @@ export default function Timesheet() {
       {!data ? <Loading /> : (
         <>
           {data.entries.length ? data.entries.map((e: any) => (
-            <Card key={e.id} style={{ marginBottom: 8, borderLeftWidth: 3, borderLeftColor: e.ended_at ? C.indigo : C.green }}>
+            <Card key={e.id} style={{ marginBottom: 8, borderLeftWidth: 3, borderLeftColor: e.ended_at ? C.gold : C.green }}>
               <Row style={{ justifyContent: 'space-between' }}>
                 <View style={{ flex: 1 }}>
                   <T b>{e.title}</T>

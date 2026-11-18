@@ -12,7 +12,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AuthProvider>
         <StatusBar style="dark" />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#F4F3EF' } }}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#F6F0E6' } }}>
           <Stack.Screen name="index" options={{ animation: 'fade' }} />
           <Stack.Screen name="task/voice" options={{ presentation: 'modal' }} />
         </Stack>

@@ -58,15 +58,15 @@ export default function Location() {
             <MapContainer center={center} zoom={12} className="map" scrollWheelZoom>
               <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               {fences.map((g) => (
-                <Circle key={g.id} center={[+g.lat, +g.lng]} radius={+g.radius_m} pathOptions={{ color: '#5b5bd6', fillOpacity: 0.12 }}>
+                <Circle key={g.id} center={[+g.lat, +g.lng]} radius={+g.radius_m} pathOptions={{ color: '#A8722C', fillOpacity: 0.12 }}>
                   <Tooltip>{g.name}</Tooltip>
                 </Circle>
               ))}
               {people.map((p) => (
-                <Marker key={p.user_id} position={[+p.lat, +p.lng]} icon={pin(p.name.split(' ')[0], p.state === 'inside' ? '#16a34a' : p.state === 'travelling' ? '#d97706' : '#5b5bd6')}
+                <Marker key={p.user_id} position={[+p.lat, +p.lng]} icon={pin(p.name.split(' ')[0], p.state === 'inside' ? '#16a34a' : p.state === 'travelling' ? '#d97706' : '#A8722C')}
                   eventHandlers={{ click: () => setSel(p.user_id) }} />
               ))}
-              {tl.data?.path?.length > 1 && <Polyline positions={tl.data.path.map((x: any) => [+x.lat, +x.lng])} pathOptions={{ color: '#1c1a4a', dashArray: '6 6' }} />}
+              {tl.data?.path?.length > 1 && <Polyline positions={tl.data.path.map((x: any) => [+x.lat, +x.lng])} pathOptions={{ color: '#2B1A10', dashArray: '6 6' }} />}
             </MapContainer>
           </div>
         </div>

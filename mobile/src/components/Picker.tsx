@@ -13,7 +13,7 @@ export function Picker({ visible, title, options, onPick, onClose, search }: {
   const list = q ? options.filter((o) => o.label.toLowerCase().includes(q.toLowerCase())) : options;
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={{ flex: 1, backgroundColor: 'rgba(20,18,50,.35)' }} onPress={onClose} />
+      <Pressable style={{ flex: 1, backgroundColor: 'rgba(43,26,16,.35)' }} onPress={onClose} />
       <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 18, maxHeight: '70%' }}>
         <Text style={{ fontSize: 17, fontWeight: '700', marginBottom: 12, color: C.text }}>{title}</Text>
         {search && <TextInput value={q} onChangeText={setQ} placeholder="Search…" style={{ borderWidth: 1, borderColor: C.line, borderRadius: 10, padding: 10, marginBottom: 10 }} />}
@@ -21,7 +21,7 @@ export function Picker({ visible, title, options, onPick, onClose, search }: {
           data={list}
           keyExtractor={(o) => String(o.value)}
           renderItem={({ item }) => (
-            <Pressable onPress={() => { onPick(item.value); onClose(); setQ(''); }} style={{ paddingVertical: 12, flexDirection: 'row', gap: 10, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#F2F1EC' }}>
+            <Pressable onPress={() => { onPick(item.value); onClose(); setQ(''); }} style={{ paddingVertical: 12, flexDirection: 'row', gap: 10, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#F1E8DB' }}>
               {item.initials && <Avatar initials={item.initials} size={28} />}
               <View>
                 <Text style={{ fontSize: 15, color: C.text }}>{item.label}</Text>
@@ -47,14 +47,14 @@ export function DuePicker({ visible, value, onPick, onClose }: { visible: boolea
   ];
   const Step = ({ label, onMinus, onPlus }: { label: string; onMinus: () => void; onPlus: () => void }) => (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 }}>
-      <Pressable onPress={onMinus} hitSlop={10}><Text style={{ fontSize: 26, color: C.indigo, width: 40, textAlign: 'center' }}>−</Text></Pressable>
+      <Pressable onPress={onMinus} hitSlop={10}><Text style={{ fontSize: 26, color: C.gold, width: 40, textAlign: 'center' }}>−</Text></Pressable>
       <Text style={{ fontSize: 16, fontWeight: '600', color: C.text }}>{label}</Text>
-      <Pressable onPress={onPlus} hitSlop={10}><Text style={{ fontSize: 26, color: C.indigo, width: 40, textAlign: 'center' }}>+</Text></Pressable>
+      <Pressable onPress={onPlus} hitSlop={10}><Text style={{ fontSize: 26, color: C.gold, width: 40, textAlign: 'center' }}>+</Text></Pressable>
     </View>
   );
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={{ flex: 1, backgroundColor: 'rgba(20,18,50,.35)' }} onPress={onClose} />
+      <Pressable style={{ flex: 1, backgroundColor: 'rgba(43,26,16,.35)' }} onPress={onClose} />
       <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 18 }}>
         <Text style={{ fontSize: 17, fontWeight: '700', marginBottom: 12, color: C.text }}>Due</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
@@ -66,7 +66,7 @@ export function DuePicker({ visible, value, onPick, onClose }: { visible: boolea
         </View>
         <Step label={d.toDateString()} onMinus={() => set((x) => x.setDate(x.getDate() - 1))} onPlus={() => set((x) => x.setDate(x.getDate() + 1))} />
         <Step label={d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} onMinus={() => set((x) => x.setMinutes(x.getMinutes() - 30))} onPlus={() => set((x) => x.setMinutes(x.getMinutes() + 30))} />
-        <Pressable onPress={() => { onPick(d); onClose(); }} style={{ backgroundColor: C.indigo, borderRadius: 12, padding: 14, alignItems: 'center', marginTop: 8 }}>
+        <Pressable onPress={() => { onPick(d); onClose(); }} style={{ backgroundColor: C.gold, borderRadius: 12, padding: 14, alignItems: 'center', marginTop: 8 }}>
           <Text style={{ color: '#fff', fontWeight: '600' }}>Done</Text>
         </Pressable>
       </View>

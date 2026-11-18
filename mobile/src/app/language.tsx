@@ -18,7 +18,7 @@ export default function Language() {
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
         {LANGUAGES.map((l) => (
           <Pressable key={l.code} onPress={() => setSel(l.code)}
-            style={{ width: '48%', paddingVertical: 18, borderRadius: 14, alignItems: 'center', backgroundColor: sel === l.code ? C.indigoSoft : '#fff', borderWidth: 1.5, borderColor: sel === l.code ? C.indigo : C.line }}>
+            style={{ width: '48%', paddingVertical: 18, borderRadius: 14, alignItems: 'center', backgroundColor: sel === l.code ? C.goldSoft : '#fff', borderWidth: 1.5, borderColor: sel === l.code ? C.gold : C.line }}>
             <Text style={{ fontSize: 18, fontWeight: '600', color: C.text }}>{l.native}</Text>
             <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{l.english}</Text>
           </Pressable>

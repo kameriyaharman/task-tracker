@@ -29,7 +29,7 @@ export default function Notifications() {
     <Screen back title={t('notifications')} refreshing={loading} onRefresh={reload}>
       {!data ? <Loading /> : data.items.length ? data.items.map((n: any) => (
         <Pressable key={n.id} onPress={() => open(n)}>
-          <Card style={{ marginBottom: 8, backgroundColor: n.read_at ? '#fff' : '#F7F6FF' }}>
+          <Card style={{ marginBottom: 8, backgroundColor: n.read_at ? '#fff' : '#FBF3E4' }}>
             <Row style={{ alignItems: 'flex-start' }}>
               <T size={18}>{icon[n.type] ?? '🔔'}</T>
               <View style={{ flex: 1 }}>

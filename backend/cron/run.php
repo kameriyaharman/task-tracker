@@ -13,7 +13,7 @@ require dirname(__DIR__) . '/src/bootstrap.php';
 use App\Core\Db;
 use App\Services\{Log, Notifier, RecurringEngine, WhatsApp};
 
-$lock = fopen(sys_get_temp_dir() . '/worktrack-cron.lock', 'c');
+$lock = fopen(sys_get_temp_dir() . '/keshav-cron.lock', 'c');
 if (!flock($lock, LOCK_EX | LOCK_NB)) exit;
 
 // 1. Recurring tasks for today (idempotent) and tomorrow early so "Upcoming" shows them.

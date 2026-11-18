@@ -21,10 +21,10 @@ export default function TeamMap() {
           {c && (
             <View style={{ height: 300, borderRadius: 18, overflow: 'hidden', marginBottom: 14 }}>
               <MapView style={{ flex: 1 }} initialRegion={{ latitude: +c.lat, longitude: +c.lng, latitudeDelta: 0.12, longitudeDelta: 0.12 }}>
-                {fences.map((g) => <Circle key={`g${g.id}`} center={{ latitude: +g.lat, longitude: +g.lng }} radius={+g.radius_m} strokeColor={C.indigo} fillColor="rgba(91,91,214,0.12)" />)}
+                {fences.map((g) => <Circle key={`g${g.id}`} center={{ latitude: +g.lat, longitude: +g.lng }} radius={+g.radius_m} strokeColor={C.gold} fillColor="rgba(168,114,44,0.12)" />)}
                 {people.map((p) => (
                   <Marker key={p.user_id} coordinate={{ latitude: +p.lat, longitude: +p.lng }} title={p.name} description={p.place_label ?? ''}
-                    pinColor={p.state === 'inside' ? 'green' : p.state === 'travelling' ? 'orange' : 'indigo'} />
+                    pinColor={p.state === 'inside' ? 'green' : p.state === 'travelling' ? 'orange' : '#A8722C'} />
                 ))}
               </MapView>
             </View>

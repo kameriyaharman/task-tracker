@@ -38,7 +38,7 @@ export default function ApplyLeave() {
     <Card style={{ flex: 1, padding: 10 }}>
       <T muted>{l}</T>
       <Row style={{ justifyContent: 'space-between', marginTop: 4 }}>
-        <Text style={{ fontSize: 22, color: C.indigo }} onPress={onMinus}>−</Text><T b>{value}</T><Text style={{ fontSize: 22, color: C.indigo }} onPress={onPlus}>+</Text>
+        <Text style={{ fontSize: 22, color: C.gold }} onPress={onMinus}>−</Text><T b>{value}</T><Text style={{ fontSize: 22, color: C.gold }} onPress={onPlus}>+</Text>
       </Row>
     </Card>
   );
@@ -48,7 +48,7 @@ export default function ApplyLeave() {
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {(bal.data ?? []).map((b) => (
           <Pressable key={b.id} onPress={() => setType(b.id)} style={{ flex: 1 }}>
-            <Card style={{ alignItems: 'center', padding: 10, borderColor: lt?.id === b.id ? C.indigo : '#EFEEE9', borderWidth: 1.5 }}>
+            <Card style={{ alignItems: 'center', padding: 10, borderColor: lt?.id === b.id ? C.gold : '#EDE3D4', borderWidth: 1.5 }}>
               <Text style={{ fontSize: 20, fontWeight: '700', color: C.text }}>{b.left ?? b.used}</Text>
               <Text style={{ fontSize: 11, color: C.muted }}>{label[b.code] ?? b.name}</Text>
             </Card>

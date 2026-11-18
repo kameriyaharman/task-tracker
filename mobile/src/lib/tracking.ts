@@ -7,7 +7,7 @@ import { api } from './api';
  * and only when the employee has turned on "Share location during work hours".
  * The server also refuses pings outside working hours or without consent.
  */
-export const TRACKING_TASK = 'worktrack-location';
+export const TRACKING_TASK = 'keshav-location';
 
 TaskManager.defineTask(TRACKING_TASK, async ({ data, error }) => {
   if (error || !data) return;
@@ -41,9 +41,9 @@ export async function startTracking() {
     pausesUpdatesAutomatically: true,
     showsBackgroundLocationIndicator: true,
     foregroundService: {
-      notificationTitle: 'WorkTrack',
+      notificationTitle: 'Keshav',
       notificationBody: 'Sharing location with your manager until you punch out',
-      notificationColor: '#5B5BD6',
+      notificationColor: '#A8722C',
     },
   });
   return true;

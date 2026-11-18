@@ -13,8 +13,8 @@ function VoiceBubble({ id, seconds, mine }: { id: number; seconds?: number; mine
   const player = useAudioPlayer(fileUrl(id));
   return (
     <Pressable onPress={() => { player.seekTo(0); player.play(); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <Text style={{ fontSize: 18, color: mine ? '#fff' : C.indigo }}>▶</Text>
-      <View style={{ width: 90, height: 3, backgroundColor: mine ? '#ffffff88' : '#CFCDE9', borderRadius: 2 }} />
+      <Text style={{ fontSize: 18, color: mine ? '#fff' : C.gold }}>▶</Text>
+      <View style={{ width: 90, height: 3, backgroundColor: mine ? '#ffffff88' : '#E2CFAE', borderRadius: 2 }} />
       <Text style={{ color: mine ? '#fff' : C.muted, fontSize: 12 }}>{mmss(seconds ?? 0)}</Text>
     </Pressable>
   );
@@ -75,17 +75,17 @@ export default function ChatRoom() {
             <View style={{ alignSelf: m.mine ? 'flex-end' : 'flex-start', maxWidth: '82%' }}>
               {!m.mine && room?.is_group ? <Text style={{ fontSize: 11, color: C.muted, marginBottom: 2 }}>{m.user_name}</Text> : null}
               {m.kind === 'task' ? (
-                <Pressable onPress={() => router.push(`/task/${m.task_id}`)} style={{ backgroundColor: '#fff', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: C.indigo }}>
-                  <Text style={{ fontSize: 11, color: C.indigo, fontWeight: '600' }}>📌 Task shared</Text>
+                <Pressable onPress={() => router.push(`/task/${m.task_id}`)} style={{ backgroundColor: '#fff', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: C.gold }}>
+                  <Text style={{ fontSize: 11, color: C.gold, fontWeight: '600' }}>📌 Task shared</Text>
                   <Text style={{ fontWeight: '600', color: C.text, marginTop: 2 }}>{m.task_title}</Text>
                   <Text style={{ fontSize: 12, color: C.muted }}>{first(m.task_assignee)} · {dueLabel(m.task_due, t)}</Text>
                 </Pressable>
               ) : (
-                <View style={{ backgroundColor: m.mine ? C.indigo : '#fff', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 9, borderBottomRightRadius: m.mine ? 4 : 16, borderBottomLeftRadius: m.mine ? 16 : 4 }}>
+                <View style={{ backgroundColor: m.mine ? C.gold : '#fff', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 9, borderBottomRightRadius: m.mine ? 4 : 16, borderBottomLeftRadius: m.mine ? 16 : 4 }}>
                   {m.kind === 'voice' && m.attachment_id ? <VoiceBubble id={m.attachment_id} seconds={m.duration_sec} mine={m.mine} />
-                    : m.kind === 'file' ? <Text style={{ color: m.mine ? '#fff' : C.indigo }} onPress={() => Linking.openURL(fileUrl(m.attachment_id))}>📎 {m.file_name}</Text>
+                    : m.kind === 'file' ? <Text style={{ color: m.mine ? '#fff' : C.gold }} onPress={() => Linking.openURL(fileUrl(m.attachment_id))}>📎 {m.file_name}</Text>
                     : <Text style={{ color: m.mine ? '#fff' : C.text, fontSize: 15 }}>{m.body}</Text>}
-                  <Text style={{ fontSize: 10, color: m.mine ? '#E2E0FF' : C.muted, alignSelf: 'flex-end', marginTop: 2 }}>{timeOf(m.created_at)}</Text>
+                  <Text style={{ fontSize: 10, color: m.mine ? '#F1DDB5' : C.muted, alignSelf: 'flex-end', marginTop: 2 }}>{timeOf(m.created_at)}</Text>
                 </View>
               )}
             </View>
@@ -105,4 +105,4 @@ export default function ChatRoom() {
   );
 }
 
-const btn = { width: 44, height: 44, borderRadius: 22, backgroundColor: C.indigo, alignItems: 'center', justifyContent: 'center' } as const;
+const btn = { width: 44, height: 44, borderRadius: 22, backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center' } as const;

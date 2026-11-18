@@ -5,7 +5,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../lib/auth';
-import { Logo } from '../components/ui';
+import { Brand } from '../components/ui';
 import { C } from '../lib/theme';
 
 /** Splash — routes to language picker (first run), login, or home. */
@@ -20,7 +20,7 @@ export default function Splash() {
       else {
         // Optional biometric / device-PIN unlock (turned on from Me → Privacy & security)
         if ((await SecureStore.getItemAsync('wt_bio')) === '1') {
-          const r = await LocalAuthentication.authenticateAsync({ promptMessage: 'Unlock WorkTrack' });
+          const r = await LocalAuthentication.authenticateAsync({ promptMessage: 'Unlock Keshav' });
           if (!r.success) return;
         }
         router.replace('/home');
@@ -30,11 +30,10 @@ export default function Splash() {
   }, [ready, me]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.navy, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ flex: 1, backgroundColor: C.walnut, alignItems: 'center', justifyContent: 'center' }}>
       <StatusBar style="light" />
-      <Logo size={96} />
-      <Text style={{ color: '#fff', fontSize: 30, fontWeight: '700', marginTop: 18 }}>WorkTrack</Text>
-      <Text style={{ color: '#C9C7F5', fontSize: 10, letterSpacing: 3, marginTop: 6 }}>TASKS · ATTENDANCE · TEAM</Text>
+      <Brand stacked light size={1.15} />
+      <Text style={{ color: '#E6CFA3', opacity: 0.7, fontSize: 11, letterSpacing: 2, position: 'absolute', bottom: 48 }}>TEAM · TASKS · ATTENDANCE</Text>
     </View>
   );
 }

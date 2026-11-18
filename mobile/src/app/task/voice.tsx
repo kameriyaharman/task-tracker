@@ -41,8 +41,8 @@ export default function Voice() {
   return (
     <Screen back title={t('speak_task')}>
       <Pressable onPress={() => input.current?.focus()} style={{ alignItems: 'center', marginVertical: 18 }}>
-        <View style={{ width: 120, height: 120, borderRadius: 60, backgroundColor: C.indigoSoft, alignItems: 'center', justifyContent: 'center' }}>
-          <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: C.indigo, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 120, height: 120, borderRadius: 60, backgroundColor: C.goldSoft, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ fontSize: 36 }}>🎤</Text>
           </View>
         </View>
@@ -50,12 +50,12 @@ export default function Voice() {
       </Pressable>
 
       <TextInput ref={input} autoFocus multiline value={text} onChangeText={onChange}
-        placeholder="“Imran, kal 11 baje tak Sharma Traders se payment collect karna”" placeholderTextColor="#B3B1BF"
+        placeholder="“Imran, kal 11 baje tak Sharma Traders se payment collect karna”" placeholderTextColor="#B9A994"
         style={{ backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: C.line, padding: 14, minHeight: 100, fontSize: 16, color: C.text, textAlignVertical: 'top' }} />
       <ErrorText msg={err} />
 
       {draft && (
-        <Card style={{ marginTop: 14, backgroundColor: C.indigoSoft, borderColor: C.indigoSoft }}>
+        <Card style={{ marginTop: 14, backgroundColor: C.goldSoft, borderColor: C.goldSoft }}>
           <T muted>✨ {t('auto_filled')}</T>
           <T b size={16} style={{ marginTop: 4 }}>{draft.title}</T>
           <T style={{ marginTop: 4 }}>

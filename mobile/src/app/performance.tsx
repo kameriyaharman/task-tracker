@@ -16,10 +16,10 @@ export default function Performance() {
     <Screen back title={t('performance')} refreshing={loading} onRefresh={reload}>
       {!data ? <Loading /> : (
         <>
-          <View style={{ backgroundColor: C.navy, borderRadius: 20, padding: 20, alignItems: 'center' }}>
-            <Text style={{ color: '#C9C7F5', fontSize: 11, letterSpacing: 1.5 }}>{t('your_score')} · {monthName(new Date()).toUpperCase()}</Text>
+          <View style={{ backgroundColor: C.walnut, borderRadius: 20, padding: 20, alignItems: 'center' }}>
+            <Text style={{ color: '#E6CFA3', fontSize: 11, letterSpacing: 1.5 }}>{t('your_score')} · {monthName(new Date()).toUpperCase()}</Text>
             <Text style={{ color: '#fff', fontSize: 56, fontWeight: '800', marginVertical: 4 }}>{s?.score ?? '—'}</Text>
-            {s && <Text style={{ color: '#E2E0FF', fontSize: 13 }}>Rank #{s.rank} of {data.total}{s.rank <= 3 ? ' · 🏆 close to “Star of the Month”' : ''}</Text>}
+            {s && <Text style={{ color: '#F1DDB5', fontSize: 13 }}>Rank #{s.rank} of {data.total}{s.rank <= 3 ? ' · 🏆 close to “Star of the Month”' : ''}</Text>}
           </View>
           {s && (
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
@@ -33,7 +33,7 @@ export default function Performance() {
           <Section title={t('leaderboard')}>
             <Card style={{ paddingVertical: 4 }}>
               {data.leaderboard.map((r: any, i: number) => (
-                <Row key={r.user_id} style={{ paddingVertical: 10, borderBottomWidth: i < data.leaderboard.length - 1 ? 1 : 0, borderBottomColor: '#F2F1EC' }}>
+                <Row key={r.user_id} style={{ paddingVertical: 10, borderBottomWidth: i < data.leaderboard.length - 1 ? 1 : 0, borderBottomColor: '#F1E8DB' }}>
                   <Avatar initials={r.initials} />
                   <T b={r.user_id === me?.id} style={{ flex: 1 }}>{r.name.split(' ')[0]}</T>
                   <T b>{r.score} pts {medal[i] ?? ''}</T>

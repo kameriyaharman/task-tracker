@@ -9,6 +9,6 @@ final class HealthController extends Controller
     {
         $db = false;
         try { $db = (bool) Db::value('SELECT 1'); } catch (\Throwable $e) {}
-        return ['app' => 'WorkTrack API', 'version' => '1.0.0', 'db' => $db, 'time' => date('c')];
+        return ['app' => 'Keshav API', 'version' => '1.0.0', 'db' => $db, 'time' => date('c')];
     }
 }

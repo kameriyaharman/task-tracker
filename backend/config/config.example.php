@@ -3,13 +3,13 @@
 return [
     'debug' => false,
     'timezone' => 'Asia/Kolkata',
-    'base_path' => '/api',               // URL folder the API lives under (e.g. https://app.worktrack.in/api)
+    'base_path' => '/api',               // URL folder the API lives under (e.g. https://app.yourdomain.com/api)
 
     'db' => [
         'host' => 'localhost',
         'port' => 3306,
-        'name' => 'worktrack',
-        'user' => 'worktrack_user',
+        'name' => 'keshav',
+        'user' => 'keshav_user',
         'pass' => 'CHANGE_ME',
     ],
 
@@ -17,7 +17,7 @@ return [
     'jwt_secret' => 'CHANGE_ME_TO_A_64_CHAR_RANDOM_STRING_________________________',
     'jwt_ttl' => 60 * 60 * 24 * 30,      // 30 days
 
-    'cors_origins' => ['https://app.worktrack.in', 'http://localhost:5173'],
+    'cors_origins' => ['https://app.yourdomain.com', 'http://localhost:5173'],
 
     // Uploads are stored outside public/ and served via /files/{id}
     'upload_dir' => null,                // null = backend/storage/uploads

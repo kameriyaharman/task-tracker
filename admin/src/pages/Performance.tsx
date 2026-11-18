@@ -47,7 +47,7 @@ export default function Performance() {
           <div className="stack">
             {top && (
               <div className="card star">
-                <div className="muted" style={{ color: '#c9c7f5' }}>🏆 Star of the Month · {label}</div>
+                <div className="muted" style={{ color: '#E6CFA3' }}>🏆 Star of the Month · {label}</div>
                 {(() => {
                   const s = data.star ? data.rows.find((r: any) => r.user_id === +data.star.user_id) ?? top : top;
                   return (
@@ -62,7 +62,7 @@ export default function Performance() {
                 ) : (
                   <>
                     <Field label="Reward"><input value={reward} onChange={(e) => setReward(e.target.value)} placeholder="₹2,000 voucher" /></Field>
-                    <button className="btn" style={{ background: '#fff', color: 'var(--navy)' }} onClick={announce}>Announce to team</button>
+                    <button className="btn" style={{ background: '#fff', color: 'var(--walnut)' }} onClick={announce}>Announce to team</button>
                   </>
                 )}
               </div>

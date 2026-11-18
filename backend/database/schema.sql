@@ -1,4 +1,4 @@
--- WorkTrack — MySQL 5.7+/8 / MariaDB 10.3+ schema
+-- Keshav — MySQL 5.7+/8 / MariaDB 10.3+ schema
 -- Multi-tenant: every business row carries company_id.
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;

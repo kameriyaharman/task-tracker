@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from './auth';
 import { useApi } from './hooks';
-import { Avatar, Drawer, Icon, Logo } from './ui';
+import { Avatar, Brand, Drawer, Icon } from './ui';
 import { ago } from './format';
 import { api } from './api';
 
@@ -17,10 +17,7 @@ export default function Layout() {
   return (
     <div className="shell">
       <aside className="side">
-        <div className="brand">
-          <Logo />
-          <div><b>WorkTrack</b><small>TASKS · ATTENDANCE · TEAM</small></div>
-        </div>
+        <Brand />
         <div className="company">{me?.company_name} <span className="muted" style={{ color: '#aaa' }}>· {me?.company_code}</span></div>
         <nav className="nav">
           {nav.map((g) => (

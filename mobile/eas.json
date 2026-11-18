@@ -4,16 +4,16 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "env": { "EXPO_PUBLIC_API_URL": "https://app.worktrack.in/api" }
+      "env": { "EXPO_PUBLIC_API_URL": "https://app.yourdomain.com/api" }
     },
     "preview": {
       "distribution": "internal",
       "android": { "buildType": "apk" },
-      "env": { "EXPO_PUBLIC_API_URL": "https://app.worktrack.in/api" }
+      "env": { "EXPO_PUBLIC_API_URL": "https://app.yourdomain.com/api" }
     },
     "production": {
       "autoIncrement": true,
-      "env": { "EXPO_PUBLIC_API_URL": "https://app.worktrack.in/api" }
+      "env": { "EXPO_PUBLIC_API_URL": "https://app.yourdomain.com/api" }
     }
   },
   "submit": { "production": {} }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api';
 import { useAuth, type Me } from '../auth';
-import { ErrorBox, Field, Logo } from '../ui';
+import { Brand, ErrorBox, Field } from '../ui';
 
 export default function Login() {
   const { login } = useAuth();
@@ -26,15 +26,15 @@ export default function Login() {
 
   return (
     <div className="login-wrap">
+      <div className="login-banner" aria-hidden />
       <form className="login" onSubmit={submit}>
-        <Logo size={30} />
-        <h2 style={{ textAlign: 'center', fontSize: 20 }}>WorkTrack Admin</h2>
-        <p className="muted" style={{ textAlign: 'center', marginBottom: 20 }}>For owners and managers</p>
+        <Brand big light={false} />
+        <p className="muted" style={{ textAlign: 'center', margin: '4px auto 20px' }}>Team & task management · Admin login</p>
         <ErrorBox msg={err} />
         <Field label="Company code"><input value={f.company_code} onChange={(e) => setF({ ...f, company_code: e.target.value.toUpperCase() })} placeholder="ACME2026" required /></Field>
         <Field label="Mobile or email"><input value={f.login} onChange={(e) => setF({ ...f, login: e.target.value })} required /></Field>
         <Field label="Password"><input type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} required /></Field>
-        <button className="btn" style={{ width: '100%', justifyContent: 'center' }} disabled={busy}>{busy ? 'Signing in…' : 'Login'}</button>
+        <button className="btn" style={{ justifyContent: 'center' }} disabled={busy}>{busy ? 'Signing in…' : 'Login'}</button>
       </form>
     </div>
   );

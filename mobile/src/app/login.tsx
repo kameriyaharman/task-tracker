@@ -5,7 +5,7 @@ import * as SecureStore from 'expo-secure-store';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../lib/api';
 import { useAuth, type Me } from '../lib/auth';
-import { Button, ErrorText, Input, Logo, T } from '../components/ui';
+import { Brand, Button, ErrorText, Input, T } from '../components/ui';
 import { C } from '../lib/theme';
 
 export default function Login() {
@@ -42,9 +42,9 @@ export default function Login() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FBF7F1' }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, padding: 24, justifyContent: 'center' }}>
-        <View style={{ alignItems: 'center', marginBottom: 26 }}><Logo size={72} /></View>
+        <View style={{ alignItems: 'center', marginBottom: 26 }}><Brand stacked size={0.8} /></View>
         <T b size={24}>{t('welcome_back')}</T>
         <T muted style={{ marginBottom: 20, marginTop: 4 }}>{t('login_mobile')}</T>
         <ErrorText msg={err} />
@@ -53,10 +53,10 @@ export default function Login() {
 
         {sent ? (
           <>
-            <Text style={{ color: C.muted, marginVertical: 8 }}>{t('enter_otp')} {sent} · <Text style={{ color: C.indigo }} onPress={() => { setSent(null); setOtp(''); }}>{t('change')}</Text></Text>
+            <Text style={{ color: C.muted, marginVertical: 8 }}>{t('enter_otp')} {sent} · <Text style={{ color: C.gold }} onPress={() => { setSent(null); setOtp(''); }}>{t('change')}</Text></Text>
             <Pressable onPress={() => otpRef.current?.focus()} style={{ flexDirection: 'row', gap: 12, marginBottom: 18 }}>
               {[0, 1, 2, 3].map((i) => (
-                <View key={i} style={{ flex: 1, height: 58, borderRadius: 12, borderWidth: 1.5, borderColor: otp.length === i ? C.indigo : C.line, alignItems: 'center', justifyContent: 'center' }}>
+                <View key={i} style={{ flex: 1, height: 58, borderRadius: 12, borderWidth: 1.5, borderColor: otp.length === i ? C.gold : C.line, alignItems: 'center', justifyContent: 'center' }}>
                   <Text style={{ fontSize: 22, fontWeight: '600', color: C.text }}>{otp[i] ?? ''}</Text>
                 </View>
               ))}
@@ -65,7 +65,7 @@ export default function Login() {
               style={{ position: 'absolute', opacity: 0, height: 1, width: 1 }}
               onChangeText={(v) => { const d = v.replace(/\D/g, ''); setOtp(d); if (d.length === 4) verify(d); }} />
             <Button title={t('verify_login')} onPress={() => verify()} disabled={otp.length < 4} loading={busy} />
-            <Text style={{ textAlign: 'center', color: C.indigo, marginTop: 14 }} onPress={request}>Resend OTP</Text>
+            <Text style={{ textAlign: 'center', color: C.gold, marginTop: 14 }} onPress={request}>Resend OTP</Text>
           </>
         ) : (
           <Button title={t('send_otp')} onPress={request} disabled={!code || mobile.replace(/\D/g, '').length < 10} loading={busy} style={{ marginTop: 8 }} />

@@ -22,7 +22,7 @@ export default function ChatList() {
 
   return (
     <Screen title={t('chat')} refreshing={loading} onRefresh={reload}
-      right={<Text style={{ color: C.indigo, fontSize: 26 }} onPress={() => setPick(true)}>＋</Text>}>
+      right={<Text style={{ color: C.gold, fontSize: 26 }} onPress={() => setPick(true)}>＋</Text>}>
       <ErrorText msg={error} />
       {!data ? <Loading /> : data.length ? data.map((r) => (
         <Card key={r.id} onPress={() => router.push(`/chat/${r.id}`)} style={{ marginBottom: 8 }}>
@@ -35,7 +35,7 @@ export default function ChatList() {
               </Row>
               <Row style={{ justifyContent: 'space-between' }}>
                 <T muted numberOfLines={1} style={{ flex: 1 }}>{r.last_kind === 'voice' ? '🎤 Voice message' : r.last_kind === 'task' ? '📌 Task shared' : r.last_kind === 'file' ? '📎 File' : r.last_body ?? ''}</T>
-                {r.unread > 0 && <View style={{ backgroundColor: C.indigo, borderRadius: 10, paddingHorizontal: 7, paddingVertical: 1 }}><Text style={{ color: '#fff', fontSize: 11 }}>{r.unread}</Text></View>}
+                {r.unread > 0 && <View style={{ backgroundColor: C.gold, borderRadius: 10, paddingHorizontal: 7, paddingVertical: 1 }}><Text style={{ color: '#fff', fontSize: 11 }}>{r.unread}</Text></View>}
               </Row>
             </View>
           </Row>

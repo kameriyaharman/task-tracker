@@ -22,7 +22,7 @@ export default function Calendar() {
           const k = sqlDate(d);
           const on = k === sel;
           return (
-            <Pressable key={k} onPress={() => setSel(k)} style={{ width: 52, paddingVertical: 10, borderRadius: 14, alignItems: 'center', backgroundColor: on ? C.indigo : '#fff', borderWidth: 1, borderColor: on ? C.indigo : C.line }}>
+            <Pressable key={k} onPress={() => setSel(k)} style={{ width: 52, paddingVertical: 10, borderRadius: 14, alignItems: 'center', backgroundColor: on ? C.gold : '#fff', borderWidth: 1, borderColor: on ? C.gold : C.line }}>
               <Text style={{ fontSize: 11, color: on ? '#fff' : C.muted }}>{d.toDateString().slice(0, 3)}</Text>
               <Text style={{ fontSize: 18, fontWeight: '700', color: on ? '#fff' : C.text }}>{d.getDate()}</Text>
             </Pressable>
@@ -33,7 +33,7 @@ export default function Calendar() {
         <Pressable key={`${x.kind}${x.id}`} onPress={() => (x.kind === 'task' ? router.push(`/task/${x.id}`) : x.meet_link ? Linking.openURL(x.meet_link) : null)}>
           <View style={{ flexDirection: 'row', gap: 12, marginBottom: 10 }}>
             <Text style={{ width: 54, color: C.muted, paddingTop: 12 }}>{timeOf(x.starts_at)}</Text>
-            <Card style={{ flex: 1, backgroundColor: x.kind === 'event' ? C.indigoSoft : '#fff', borderLeftWidth: 3, borderLeftColor: x.kind === 'event' ? C.indigo : x.priority === 'high' ? C.red : C.amber }}>
+            <Card style={{ flex: 1, backgroundColor: x.kind === 'event' ? C.goldSoft : '#fff', borderLeftWidth: 3, borderLeftColor: x.kind === 'event' ? C.gold : x.priority === 'high' ? C.red : C.amber }}>
               <T b>{x.title}</T>
               {x.meet_link && <T muted>Google Meet</T>}
               {x.kind === 'task' && <T muted>{t(x.status)}</T>}
