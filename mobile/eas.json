@@ -4,16 +4,16 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "env": { "EXPO_PUBLIC_API_URL": "https://app.yourdomain.com/api" }
+      "env": { "EXPO_PUBLIC_API_URL": "https://keshav-web-production.up.railway.app/api" }
     },
     "preview": {
       "distribution": "internal",
       "android": { "buildType": "apk" },
-      "env": { "EXPO_PUBLIC_API_URL": "https://app.yourdomain.com/api" }
+      "env": { "EXPO_PUBLIC_API_URL": "https://keshav-web-production.up.railway.app/api" }
     },
     "production": {
       "autoIncrement": true,
-      "env": { "EXPO_PUBLIC_API_URL": "https://app.yourdomain.com/api" }
+      "env": { "EXPO_PUBLIC_API_URL": "https://keshav-web-production.up.railway.app/api" }
     }
   },
   "submit": { "production": {} }

@@ -1,4 +1,5 @@
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
+import Constants from 'expo-constants';
 import MapView, { Circle, Marker } from 'react-native-maps';
 import { useAuth } from '../lib/auth';
 import { useApi } from '../lib/hooks';
@@ -13,12 +14,14 @@ export default function TeamMap() {
   const people: any[] = data?.people ?? [];
   const fences: any[] = data?.geofences ?? [];
   const c = people[0] ?? fences[0];
+  // Android maps need a Google Maps API key (app.json → android.config.googleMaps.apiKey); without it show the list only.
+  const mapsReady = Platform.OS !== 'android' || !!(Constants.expoConfig?.android as any)?.config?.googleMaps?.apiKey;
 
   return (
     <Screen back title={t('team_location')} refreshing={loading} onRefresh={reload}>
       {!data ? <Loading /> : (
         <>
-          {c && (
+          {c && mapsReady && (
             <View style={{ height: 300, borderRadius: 18, overflow: 'hidden', marginBottom: 14 }}>
               <MapView style={{ flex: 1 }} initialRegion={{ latitude: +c.lat, longitude: +c.lng, latitudeDelta: 0.12, longitudeDelta: 0.12 }}>
                 {fences.map((g) => <Circle key={`g${g.id}`} center={{ latitude: +g.lat, longitude: +g.lng }} radius={+g.radius_m} strokeColor={C.gold} fillColor="rgba(168,114,44,0.12)" />)}

@@ -16,7 +16,9 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "With your consent, Keshav shares your location with your manager only between punch-in and punch-out.",
         "NSMicrophoneUsageDescription": "Keshav records voice notes for tasks and chat.",
         "NSFaceIDUsageDescription": "Unlock Keshav with Face ID.",
-        "UIBackgroundModes": ["location"]
+        "UIBackgroundModes": [
+          "location"
+        ]
       }
     },
     "android": {
@@ -37,7 +39,12 @@
         "FOREGROUND_SERVICE_LOCATION",
         "USE_BIOMETRIC"
       ],
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "config": {
+        "googleMaps": {
+          "apiKey": ""
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -46,21 +53,53 @@
       "expo-router",
       "expo-secure-store",
       "expo-localization",
-      ["expo-audio", { "microphonePermission": "Keshav records voice notes for tasks and chat." }],
-      ["expo-image-picker", { "cameraPermission": "Keshav uses the camera for punch-in selfies and task photo proof." }],
-      ["expo-location", {
-        "locationWhenInUsePermission": "Keshav checks your location when you punch in and when you complete field tasks.",
-        "locationAlwaysAndWhenInUsePermission": "With your consent, Keshav shares your location with your manager only between punch-in and punch-out.",
-        "isAndroidBackgroundLocationEnabled": true,
-        "isAndroidForegroundServiceEnabled": true
-      }],
-      ["expo-notifications", { "color": "#A8722C" }],
-      ["expo-local-authentication", { "faceIDPermission": "Unlock Keshav with Face ID." }],
-      ["expo-splash-screen", { "image": "./assets/splash-icon.png", "imageWidth": 200, "backgroundColor": "#2B1A10" }]
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Keshav records voice notes for tasks and chat."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Keshav uses the camera for punch-in selfies and task photo proof."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Keshav checks your location when you punch in and when you complete field tasks.",
+          "locationAlwaysAndWhenInUsePermission": "With your consent, Keshav shares your location with your manager only between punch-in and punch-out.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#A8722C"
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Unlock Keshav with Face ID."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "backgroundColor": "#2B1A10"
+        }
+      ]
     ],
     "extra": {
-      "apiUrl": "https://app.yourdomain.com/api",
-      "eas": { "projectId": "" }
+      "apiUrl": "https://keshav-web-production.up.railway.app/api",
+      "eas": {
+        "projectId": ""
+      }
     }
   }
 }
