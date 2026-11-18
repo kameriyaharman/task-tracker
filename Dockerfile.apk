@@ -1,0 +1,23 @@
+# Builds the Keshav Android APK (release, installable) and serves it for download.
+# Railway service "keshav-apk" uses this file. Rebuilds only when mobile/ changes.
+
+FROM reactnativecommunity/react-native-android:latest AS build
+WORKDIR /app
+COPY mobile/package.json mobile/package-lock.json mobile/.npmrc ./
+RUN npm ci --legacy-peer-deps --no-audit --no-fund
+COPY mobile/ ./
+ARG API_URL=https://keshav-web-production.up.railway.app/api
+ENV EXPO_PUBLIC_API_URL=${API_URL} \
+    EXPO_NO_TELEMETRY=1 \
+    NODE_ENV=production \
+    GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx6g -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=4"
+RUN npx expo prebuild --platform android --no-install --clean
+# arm64 covers practically every Android phone sold since 2017; keeps the build fast.
+RUN cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon --stacktrace \
+ && mkdir -p /out && cp app/build/outputs/apk/release/app-release.apk /out/keshav.apk
+
+FROM node:22-alpine
+WORKDIR /srv
+COPY --from=build /out/keshav.apk ./keshav.apk
+COPY docker/apk-server.js ./server.js
+CMD ["node", "server.js"]
