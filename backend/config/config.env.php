@@ -7,6 +7,7 @@ return [
     'debug' => $bool('APP_DEBUG'),
     'timezone' => $env('APP_TIMEZONE', 'Asia/Kolkata'),
     'base_path' => $env('BASE_PATH', '/api'),
+    'company_code' => $env('COMPANY_CODE', 'KESHAV'),        // single company this install serves
 
     'db' => [
         'host' => $env('MYSQLHOST', $env('DB_HOST', 'localhost')),

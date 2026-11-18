@@ -4,6 +4,7 @@ return [
     'debug' => false,
     'timezone' => 'Asia/Kolkata',
     'base_path' => '/api',               // URL folder the API lives under (e.g. https://app.yourdomain.com/api)
+    'company_code' => 'KESHAV',          // single company this install serves
 
     'db' => [
         'host' => 'localhost',

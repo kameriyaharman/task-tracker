@@ -6,15 +6,21 @@ use App\Services\Sms;
 
 final class AuthController extends Controller
 {
-    private function findUser(string $companyCode, string $mobile): array
+    /** Single-company install: the company is fixed by config (COMPANY_CODE), else the first company. */
+    public static function companyId(): int
     {
-        $mobile = self::normaliseMobile($mobile);
-        $u = Db::one(
-            'SELECT u.* FROM users u JOIN companies c ON c.id = u.company_id
-              WHERE c.code = ? AND u.mobile = ? AND u.is_active = 1',
-            [strtoupper(trim($companyCode)), $mobile]
-        );
-        if (!$u) throw HttpError::notFound('No employee found with this company code and mobile');
+        $code = Config::get('company_code');
+        $id = $code ? Db::value('SELECT id FROM companies WHERE code = ?', [strtoupper($code)]) : null;
+        $id = $id ?: Db::value('SELECT id FROM companies ORDER BY id LIMIT 1');
+        if (!$id) throw new HttpError(503, 'App is not set up yet');
+        return (int) $id;
+    }
+
+    private function findUser(string $mobile): array
+    {
+        $u = Db::one('SELECT * FROM users WHERE company_id = ? AND mobile = ? AND is_active = 1',
+            [self::companyId(), self::normaliseMobile($mobile)]);
+        if (!$u) throw HttpError::notFound('This mobile number is not registered. Ask your admin to add you.');
         return $u;
     }
 
@@ -25,11 +31,11 @@ final class AuthController extends Controller
         return $m;
     }
 
-    /** POST /auth/request-otp {company_code, mobile} */
+    /** POST /auth/request-otp {mobile} */
     public function requestOtp(): array
     {
-        $in = $this->req->require(['company_code', 'mobile']);
-        $u = $this->findUser($in['company_code'], $in['mobile']);
+        $in = $this->req->require(['mobile']);
+        $u = $this->findUser($in['mobile']);
 
         $recent = (int) Db::value('SELECT COUNT(*) FROM otp_codes WHERE user_id = ? AND created_at > NOW() - INTERVAL 15 MINUTE', [$u['id']]);
         if ($recent >= 5) throw HttpError::tooMany();
@@ -45,11 +51,11 @@ final class AuthController extends Controller
         return ['sent' => true, 'expires_in' => 300, 'masked' => '+91 ' . substr($u['mobile'], 0, 2) . 'XXX X' . substr($u['mobile'], -4)];
     }
 
-    /** POST /auth/verify-otp {company_code, mobile, otp} */
+    /** POST /auth/verify-otp {mobile, otp} */
     public function verifyOtp(): array
     {
-        $in = $this->req->require(['company_code', 'mobile', 'otp']);
-        $u = $this->findUser($in['company_code'], $in['mobile']);
+        $in = $this->req->require(['mobile', 'otp']);
+        $u = $this->findUser($in['mobile']);
         $row = Db::one('SELECT * FROM otp_codes WHERE user_id = ? AND used_at IS NULL AND expires_at > NOW() ORDER BY id DESC LIMIT 1', [$u['id']]);
         if (!$row) throw HttpError::badRequest('OTP expired, request a new one');
         if ($row['attempts'] >= 5) throw HttpError::tooMany();
@@ -61,15 +67,14 @@ final class AuthController extends Controller
         return $this->session($u);
     }
 
-    /** POST /auth/admin-login {company_code, login (mobile/email), password} — web panel */
+    /** POST /auth/admin-login {login (mobile/email), password} — web panel */
     public function adminLogin(): array
     {
-        $in = $this->req->require(['company_code', 'login', 'password']);
+        $in = $this->req->require(['login', 'password']);
         $login = trim($in['login']);
         $u = Db::one(
-            'SELECT u.* FROM users u JOIN companies c ON c.id = u.company_id
-              WHERE c.code = ? AND (u.email = ? OR u.mobile = ?) AND u.is_active = 1',
-            [strtoupper(trim($in['company_code'])), $login, self::normaliseMobile($login)]
+            'SELECT * FROM users WHERE company_id = ? AND (email = ? OR mobile = ?) AND is_active = 1',
+            [self::companyId(), $login, self::normaliseMobile($login)]
         );
         if (!$u || !$u['password_hash'] || !password_verify($in['password'], $u['password_hash'])) {
             throw HttpError::unauthorized('Invalid login');

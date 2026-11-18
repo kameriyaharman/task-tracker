@@ -27,9 +27,9 @@ Colours live in `admin/src/styles.css` (`:root`) and `mobile/src/lib/theme.ts`.
    `php /home/USERNAME/public_html/api/cron/run.php`
    — creates recurring tasks, sends "due in 1 hour" reminders and overdue alerts, closes forgotten punches.
 6. Check `https://yourdomain.com/api/` → `{"app":"Keshav API","db":true}`.
-7. **First company** — with SSH: `php database/seed.php` loads a demo company (code `KESHAV`, owner mobile
-   `9800011220`, password `admin123`). For a real company insert one row in `companies` and one owner in `users`
-   (set `password_hash` with `php -r "echo password_hash('yourpass', PASSWORD_DEFAULT);"`), then add the rest from the admin panel.
+7. **Owner account** — `php database/install.php` with `ADMIN_PASSWORD`, `ADMIN_EMAIL`, `ADMIN_MOBILE` set creates the Keshav company and its owner.
+   This is a single-company install: login needs only mobile/email + password (admin) or mobile + OTP (app).
+   `php database/seed.php` loads sample data for local testing only.
 
 Needs PHP ≥ 8.0 with `pdo_mysql`, `curl`, `fileinfo`, `mbstring` (all on by default on most hosts).
 
@@ -49,7 +49,7 @@ cp .env.example .env.local         # VITE_API_URL=https://yourdomain.com/api
 npm install && npm run build
 ```
 Upload everything inside `admin/dist/` to `public_html/` (or a subdomain like `app.yourdomain.com`).
-The included `.htaccess` makes page refreshes work. Login: company code + owner/manager mobile or email + password.
+The included `.htaccess` makes page refreshes work. Login: owner/manager mobile or email + password.
 
 ## 3. Mobile app (Android + iOS)
 
@@ -69,6 +69,10 @@ npx eas-cli@latest submit -p android   /   -p ios
 Set your API URL in `eas.json` (`EXPO_PUBLIC_API_URL`) and the `bundleIdentifier` / `package` in `app.json` before the first store build.
 For Android maps add a Google Maps API key under `android.config.googleMaps.apiKey` in `app.json`.
 
+## Railway (current live setup)
+One Docker service (`Dockerfile`: admin at `/`, API at `/api`, cron loop) + MySQL + a volume on `backend/storage`.
+Settings are environment variables (see `backend/config/config.env.php`). `Dockerfile.apk` builds the Android APK and serves a download page.
+
 ## Local development
 
 ```bash
@@ -83,7 +87,7 @@ cd admin && echo "VITE_API_URL=http://127.0.0.1:8080" > .env.local && npm run de
 # App
 cd mobile && echo "EXPO_PUBLIC_API_URL=http://<your-LAN-IP>:8080" > .env && npx expo start
 ```
-Demo logins (company `KESHAV`): owner 9800011220 / admin123 · employees 9800011221–26 (OTP from `storage/logs/otp.log`).
+Local sample data (`php database/seed.php`): owner 9800011220 / admin123 · employees 9800011221–26 (OTP from `storage/logs/otp.log`).
 
 ## What's in each screen (from the design)
 

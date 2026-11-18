@@ -18,7 +18,7 @@ export default function Layout() {
     <div className="shell">
       <aside className="side">
         <Brand />
-        <div className="company">{me?.company_name} <span className="muted" style={{ color: '#aaa' }}>· {me?.company_code}</span></div>
+        <div className="company">{me?.company_name}</div>
         <nav className="nav">
           {nav.map((g) => (
             <div key={g.group}>

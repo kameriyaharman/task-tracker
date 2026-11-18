@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../lib/api';
 import { useAuth, type Me } from '../lib/auth';
@@ -10,7 +9,6 @@ import { C } from '../lib/theme';
 
 export default function Login() {
   const { t, signIn } = useAuth();
-  const [code, setCode] = useState('');
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
   const [sent, setSent] = useState<string | null>(null);
@@ -18,15 +16,10 @@ export default function Login() {
   const [err, setErr] = useState<string | null>(null);
   const otpRef = useRef<React.ComponentRef<typeof TextInput>>(null);
 
-  useEffect(() => {
-    SecureStore.getItemAsync('wt_company').then((c) => c && setCode(c));
-  }, []);
-
   const request = async () => {
     setBusy(true); setErr(null);
     try {
-      const r = await api<{ masked: string }>('/auth/request-otp', { body: { company_code: code, mobile } });
-      await SecureStore.setItemAsync('wt_company', code);
+      const r = await api<{ masked: string }>('/auth/request-otp', { body: { mobile } });
       setSent(r.masked);
       setTimeout(() => otpRef.current?.focus(), 300);
     } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
@@ -35,7 +28,7 @@ export default function Login() {
   const verify = async (value = otp) => {
     setBusy(true); setErr(null);
     try {
-      const r = await api<{ token: string; user: Me }>('/auth/verify-otp', { body: { company_code: code, mobile, otp: value } });
+      const r = await api<{ token: string; user: Me }>('/auth/verify-otp', { body: { mobile, otp: value } });
       await signIn(r.token, r.user);
       router.replace('/home');
     } catch (e) { setErr((e as Error).message); setOtp(''); } finally { setBusy(false); }
@@ -48,8 +41,7 @@ export default function Login() {
         <T b size={24}>{t('welcome_back')}</T>
         <T muted style={{ marginBottom: 20, marginTop: 4 }}>{t('login_mobile')}</T>
         <ErrorText msg={err} />
-        <Input label={t('company_code')} value={code} onChangeText={(v) => setCode(v.toUpperCase())} autoCapitalize="characters" placeholder="ACME2026" editable={!sent} />
-        <Input label={t('mobile')} value={mobile} onChangeText={setMobile} keyboardType="phone-pad" placeholder="+91 98XXX XXXXX" editable={!sent} maxLength={14} />
+        <Input label={t('mobile')} autoFocus value={mobile} onChangeText={setMobile} keyboardType="phone-pad" placeholder="+91 98XXX XXXXX" editable={!sent} maxLength={14} />
 
         {sent ? (
           <>
@@ -68,7 +60,7 @@ export default function Login() {
             <Text style={{ textAlign: 'center', color: C.gold, marginTop: 14 }} onPress={request}>Resend OTP</Text>
           </>
         ) : (
-          <Button title={t('send_otp')} onPress={request} disabled={!code || mobile.replace(/\D/g, '').length < 10} loading={busy} style={{ marginTop: 8 }} />
+          <Button title={t('send_otp')} onPress={request} disabled={mobile.replace(/\D/g, '').length < 10} loading={busy} style={{ marginTop: 8 }} />
         )}
         <Text style={{ textAlign: 'center', color: C.muted, marginTop: 24 }} onPress={() => router.push('/language')}>🌐 {t('language')}</Text>
       </KeyboardAvoidingView>

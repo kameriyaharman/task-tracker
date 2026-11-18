@@ -41,6 +41,28 @@ if (!Db::value('SELECT id FROM companies WHERE code = ?', [$code])) {
     }
 }
 
+// One-time cleanup: REMOVE_COMPANY_CODE=DEMO deletes that company and every row that belongs to it.
+// Never touches the main company (COMPANY_CODE).
+$remove = strtoupper((string) getenv('REMOVE_COMPANY_CODE'));
+if ($remove !== '' && $remove !== $code && ($rid = Db::value('SELECT id FROM companies WHERE code = ?', [$remove]))) {
+    $rid = (int) $rid;
+    Db::pdo()->exec('SET FOREIGN_KEY_CHECKS = 0');
+    Db::exec('DELETE c FROM task_checklist c JOIN tasks t ON t.id = c.task_id WHERE t.company_id = ?', [$rid]);
+    Db::exec('DELETE c FROM task_comments c JOIN tasks t ON t.id = c.task_id WHERE t.company_id = ?', [$rid]);
+    Db::exec('DELETE a FROM task_activity a JOIN tasks t ON t.id = a.task_id WHERE t.company_id = ?', [$rid]);
+    Db::exec('DELETE o FROM otp_codes o JOIN users u ON u.id = o.user_id WHERE u.company_id = ?', [$rid]);
+    Db::exec('DELETE m FROM chat_messages m JOIN chat_rooms r ON r.id = m.room_id WHERE r.company_id = ?', [$rid]);
+    Db::exec('DELETE m FROM chat_members m JOIN chat_rooms r ON r.id = m.room_id WHERE r.company_id = ?', [$rid]);
+    foreach (['tasks', 'recurring_rules', 'attachments', 'attendance', 'location_pings', 'requests', 'timesheet_entries', 'projects', 'events',
+              'chat_rooms', 'campaigns', 'notifications', 'whatsapp_log', 'rewards', 'ai_suggestions', 'goals', 'geofences', 'leave_types',
+              'holidays', 'users', 'departments'] as $table) {
+        Db::exec("DELETE FROM $table WHERE company_id = ?", [$rid]);
+    }
+    Db::exec('DELETE FROM companies WHERE id = ?', [$rid]);
+    Db::pdo()->exec('SET FOREIGN_KEY_CHECKS = 1');
+    echo "Removed company $remove and all its data\n";
+}
+
 if (filter_var(getenv('DEMO_DATA') ?: '0', FILTER_VALIDATE_BOOLEAN)) {
     passthru(PHP_BINARY . ' ' . escapeshellarg(__DIR__ . '/seed.php') . ' ' . escapeshellarg(getenv('DEMO_COMPANY_CODE') ?: 'DEMO'));
 }

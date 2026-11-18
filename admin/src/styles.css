@@ -165,10 +165,13 @@ table.t { width: 100%; border-collapse: collapse; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
 
 .map { height: 460px; border-radius: var(--radius); overflow: hidden; }
-.login-wrap { min-height: 100vh; display: grid; grid-template-columns: 1.4fr 1fr; background: var(--walnut); }
-.login-banner { background: #2B1A10 url('/brand-banner.jpg') center / cover no-repeat; min-height: 100vh; }
+.login-wrap { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(360px, 1fr); background: var(--walnut); }
+/* Full banner always visible (no cropping): sharp image on top of a blurred copy that fills the panel */
+.login-banner { position: relative; overflow: hidden; display: grid; place-items: center; min-height: 100vh; padding: 32px; background: #2B1A10; }
+.login-banner::before { content: ''; position: absolute; inset: -40px; background: url('/brand-banner.jpg') center / cover no-repeat; filter: blur(28px) brightness(.55) saturate(1.1); }
+.login-banner img { position: relative; display: block; width: 100%; height: auto; max-height: calc(100vh - 64px); object-fit: contain; border-radius: 14px; box-shadow: 0 24px 60px rgba(0,0,0,.45); }
 .login { background: #FBF7F1; padding: 48px 40px; display: flex; flex-direction: column; justify-content: center; }
 .login > * { width: min(360px, 100%); margin-left: auto; margin-right: auto; }
-@media (max-width: 900px) { .login-wrap { grid-template-columns: 1fr; } .login-banner { min-height: 34vh; } }
+@media (max-width: 900px) { .login-wrap { grid-template-columns: 1fr; } .login-banner { min-height: 0; padding: 16px; } .login-banner img { max-height: none; } .login { padding: 32px 22px; } }
 .star { background: linear-gradient(135deg, #4A2E1B, var(--walnut)); color: #fff; }
 .star .av { background: #fff; color: var(--walnut); }
