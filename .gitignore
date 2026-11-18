@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env.local
+.env
+*.log
+
+# backend secrets & runtime data
+backend/config/config.php
+backend/storage/uploads/
+backend/storage/logs/
+
+# expo
+mobile/.expo/
+mobile/android/
+mobile/ios/
+mobile/web-build/
+.DS_Store

@@ -1,0 +1,7 @@
+# SPA fallback for shared hosting: every unknown path loads index.html
+Options -Indexes
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/api/
+RewriteRule . index.html [L]
