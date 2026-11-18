@@ -88,6 +88,13 @@ final class VoiceParser
             $party = trim($m[1]); $obj = trim($m[3]); $verb = trim($m[4]);
             $title = ucfirst($verb) . ' ' . $obj . ' — ' . $party;
         }
+        // Hinglish verb at the end → English imperative at the front ("GST file bhejna" → "Send GST file")
+        $verbs = ['bhejna|bhejni|bhej do|bhejo' => 'Send', 'banana|banani|bana do|banao' => 'Prepare', 'call karna|call karo|phone karna|call' => 'Call',
+                  'check karna|check karo|dekhna|dekh lena|check' => 'Check', 'lena|le lo|le aana' => 'Get', 'dena|de do' => 'Give',
+                  'milna|meet karna' => 'Meet', 'update karna|update' => 'Update', 'post karna|post karo|post' => 'Post', 'pay karna|payment karna' => 'Pay'];
+        foreach ($verbs as $re => $en) {
+            if (preg_match('/^(.+?)\s+(' . $re . ')$/iu', $title, $m)) { $title = $en . ' ' . $m[1]; break; }
+        }
         $title = mb_strtoupper(mb_substr($title, 0, 1)) . mb_substr($title, 1);
 
         return [

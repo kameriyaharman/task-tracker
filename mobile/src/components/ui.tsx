@@ -1,0 +1,185 @@
+import type { ReactNode } from 'react';
+import {
+  ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View,
+  type TextInputProps, type StyleProp, type ViewStyle,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { C, R, avatarColor, statusColor } from '../lib/theme';
+import { dueLabel, overdueLabel } from '../lib/format';
+import { useAuth } from '../lib/auth';
+
+export function Screen({ children, title, right, back, refreshing, onRefresh, scroll = true, pad = true }: {
+  children: ReactNode; title?: string; right?: ReactNode; back?: boolean; refreshing?: boolean; onRefresh?: () => void; scroll?: boolean; pad?: boolean;
+}) {
+  const body = scroll ? (
+    <ScrollView
+      contentContainerStyle={[pad && { padding: 16 }, { paddingBottom: 40 }]}
+      keyboardShouldPersistTaps="handled"
+      refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={C.indigo} /> : undefined}
+    >
+      {children}
+    </ScrollView>
+  ) : <View style={[{ flex: 1 }, pad && { padding: 16 }]}>{children}</View>;
+  return (
+    <SafeAreaView style={s.screen} edges={['top']}>
+      {(title || back) && (
+        <View style={s.header}>
+          {back && <Pressable hitSlop={12} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}><Text style={s.back}>‹</Text></Pressable>}
+          <Text style={s.title} numberOfLines={1}>{title}</Text>
+          <View style={{ marginLeft: 'auto' }}>{right}</View>
+        </View>
+      )}
+      {body}
+    </SafeAreaView>
+  );
+}
+
+export const Card = ({ children, style, onPress }: { children: ReactNode; style?: StyleProp<ViewStyle>; onPress?: () => void }) =>
+  onPress ? <Pressable onPress={onPress} style={({ pressed }) => [s.card, style, pressed && { opacity: 0.85 }]}>{children}</Pressable> : <View style={[s.card, style]}>{children}</View>;
+
+export const T = ({ children, style, muted, b, size, color, numberOfLines }: { children: ReactNode; style?: any; muted?: boolean; b?: boolean; size?: number; color?: string; numberOfLines?: number }) => (
+  <Text numberOfLines={numberOfLines} style={[{ color: color ?? (muted ? C.muted : C.text), fontSize: size ?? (muted ? 12.5 : 14), fontWeight: b ? '600' : '400' }, style]}>{children}</Text>
+);
+
+export function Avatar({ initials, size = 30 }: { initials: string; size?: number }) {
+  return (
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: avatarColor(initials), alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ color: '#fff', fontWeight: '700', fontSize: size * 0.36 }}>{initials}</Text>
+    </View>
+  );
+}
+
+export function Badge({ s: st, label }: { s: string; label: string }) {
+  const [bg, fg] = statusColor(st);
+  return <View style={[s.badge, { backgroundColor: bg }]}><Text style={{ color: fg, fontSize: 11, fontWeight: '600' }}>{label}</Text></View>;
+}
+
+export function Button({ title, onPress, variant = 'primary', disabled, loading, style, small }: {
+  title: string; onPress?: () => void; variant?: 'primary' | 'ghost' | 'danger' | 'ok' | 'white'; disabled?: boolean; loading?: boolean; style?: StyleProp<ViewStyle>; small?: boolean;
+}) {
+  const bg = { primary: C.indigo, ghost: '#fff', danger: C.redSoft, ok: C.greenSoft, white: '#fff' }[variant];
+  const fg = { primary: '#fff', ghost: C.text, danger: C.red, ok: C.green, white: C.navy }[variant];
+  return (
+    <Pressable
+      disabled={disabled || loading}
+      onPress={onPress}
+      style={({ pressed }) => [s.btn, small && s.btnSm, { backgroundColor: bg, opacity: disabled ? 0.5 : pressed ? 0.85 : 1 }, variant === 'ghost' && { borderWidth: 1, borderColor: C.line }, style]}
+    >
+      {loading ? <ActivityIndicator color={fg} /> : <Text style={{ color: fg, fontWeight: '600', fontSize: small ? 12.5 : 15 }}>{title}</Text>}
+    </Pressable>
+  );
+}
+
+export function Input({ label, style, ...p }: TextInputProps & { label?: string }) {
+  return (
+    <View style={[s.inputWrap, style as any]}>
+      {label && <Text style={s.inputLabel}>{label}</Text>}
+      <TextInput placeholderTextColor="#B3B1BF" style={s.input} {...p} />
+    </View>
+  );
+}
+
+/** Label/value box that opens a picker (used for Assign to, Due, Priority…) */
+export function Select({ label, value, onPress }: { label: string; value: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={s.inputWrap}>
+      <Text style={s.inputLabel}>{label}</Text>
+      <Text style={[s.input, { paddingVertical: 2 }]}>{value}</Text>
+    </Pressable>
+  );
+}
+
+export function Chips<V extends string | number>({ items, value, onChange, multi }: {
+  items: [V, string, number?][]; value: V | V[]; onChange: (v: any) => void; multi?: boolean;
+}) {
+  const on = (v: V) => (Array.isArray(value) ? value.includes(v) : value === v);
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 2 }}>
+      {items.map(([v, l, n]) => (
+        <Pressable key={String(v)} onPress={() => onChange(multi && Array.isArray(value) ? (on(v) ? value.filter((x) => x !== v) : [...value, v]) : v)}
+          style={[s.chip, on(v) && { backgroundColor: C.navy, borderColor: C.navy }]}>
+          <Text style={{ color: on(v) ? '#fff' : C.text, fontSize: 13 }}>{l}{n !== undefined ? <Text style={{ fontWeight: '700' }}> {n}</Text> : null}</Text>
+        </Pressable>
+      ))}
+    </ScrollView>
+  );
+}
+
+export const Bar = ({ pct, color }: { pct: number; color?: string }) => (
+  <View style={s.bar}><View style={{ width: `${Math.max(0, Math.min(100, pct))}%`, height: '100%', backgroundColor: color ?? C.indigo, borderRadius: 6 }} /></View>
+);
+
+export const Loading = () => <View style={{ padding: 40 }}><ActivityIndicator color={C.indigo} /></View>;
+export const Empty = ({ text }: { text: string }) => <Text style={{ textAlign: 'center', color: C.muted, padding: 30 }}>{text}</Text>;
+export const ErrorText = ({ msg }: { msg?: string | null }) => (msg ? <View style={s.err}><Text style={{ color: C.red }}>{msg}</Text></View> : null);
+
+export const Section = ({ title, right, children }: { title: string; right?: ReactNode; children?: ReactNode }) => (
+  <View style={{ marginTop: 18 }}>
+    <View style={[s.row, { justifyContent: 'space-between', marginBottom: 10 }]}><T b size={16}>{title}</T>{right}</View>
+    {children}
+  </View>
+);
+
+export const Row = ({ children, style, gap = 10 }: { children: ReactNode; style?: StyleProp<ViewStyle>; gap?: number }) => <View style={[s.row, { gap }, style]}>{children}</View>;
+
+export function Logo({ size = 64 }: { size?: number }) {
+  return (
+    <View style={{ width: size, height: size, borderRadius: size * 0.26, backgroundColor: C.indigo, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ color: '#fff', fontSize: size * 0.55, fontWeight: '800', marginTop: -size * 0.04 }}>✓</Text>
+    </View>
+  );
+}
+
+export function Brand({ light }: { light?: boolean }) {
+  return (
+    <Row gap={8}>
+      <Logo size={26} />
+      <View>
+        <Text style={{ fontWeight: '700', color: light ? '#fff' : C.text, fontSize: 13 }}>WorkTrack</Text>
+        <Text style={{ fontSize: 6.5, letterSpacing: 1.6, color: light ? '#c9c7f5' : C.muted }}>TASKS · ATTENDANCE · TEAM</Text>
+      </View>
+    </Row>
+  );
+}
+
+/** Task row used on Home and Tasks — orange left accent for in-progress, red for overdue (as in the design). */
+export function TaskCard({ t }: { t: any }) {
+  const { t: tr } = useAuth();
+  const st = t.display_status as string;
+  const accent = st === 'overdue' ? C.red : st === 'in_progress' ? '#F59E0B' : st === 'done' ? C.green : C.line;
+  const label = st === 'overdue' ? `${tr('overdue')} ${overdueLabel(t.overdue_minutes)}` : tr(st);
+  return (
+    <Card onPress={() => router.push(`/task/${t.id}`)} style={{ borderLeftWidth: 3, borderLeftColor: accent, marginBottom: 10 }}>
+      <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <T b style={{ flex: 1, textDecorationLine: st === 'done' ? 'line-through' : 'none' }} numberOfLines={2}>{t.title}</T>
+        <Badge s={st} label={label} />
+      </Row>
+      <Row style={{ justifyContent: 'space-between', marginTop: 8 }}>
+        <T muted>
+          {t.repeat_frequency ? `${tr(t.repeat_frequency)} · ` : '⏱ '}{dueLabel(t.due_at, tr)} · <Text style={{ color: t.priority === 'high' ? C.red : t.priority === 'medium' ? C.amber : C.green }}>{tr(t.priority)}</Text>
+          {t.checklist_total ? `  ·  ☑ ${t.checklist_done}/${t.checklist_total}` : ''}
+        </T>
+        <Avatar initials={t.assignee_initials} size={24} />
+      </Row>
+    </Card>
+  );
+}
+
+export const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: C.bg },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 10 },
+  back: { fontSize: 32, color: C.text, marginTop: -6, paddingRight: 4 },
+  title: { fontSize: 20, fontWeight: '700', color: C.text, flexShrink: 1 },
+  card: { backgroundColor: C.card, borderRadius: R.lg, padding: 14, borderWidth: 1, borderColor: '#EFEEE9' },
+  badge: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 20, alignSelf: 'flex-start' },
+  btn: { borderRadius: R.md, paddingVertical: 14, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center' },
+  btnSm: { paddingVertical: 7, paddingHorizontal: 12, borderRadius: 9 },
+  inputWrap: { backgroundColor: '#fff', borderWidth: 1, borderColor: C.line, borderRadius: R.md, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 10 },
+  inputLabel: { fontSize: 11, color: C.muted, marginBottom: 2 },
+  input: { fontSize: 15, color: C.text, paddingVertical: 2 },
+  chip: { paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: C.line },
+  bar: { height: 6, backgroundColor: '#ECEAF6', borderRadius: 6, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center' },
+  err: { backgroundColor: C.redSoft, padding: 10, borderRadius: 10, marginBottom: 10 },
+});
