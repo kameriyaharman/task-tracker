@@ -7,6 +7,10 @@ final class Config
 
     public static function load(string $file): void
     {
+        // On Railway / Docker there is no config.php: settings come from environment variables.
+        if (!is_file($file) && is_file(dirname($file) . '/config.env.php') && (getenv('MYSQLHOST') || getenv('DB_HOST'))) {
+            $file = dirname($file) . '/config.env.php';
+        }
         if (!is_file($file)) {
             http_response_code(500);
             header('Content-Type: application/json');

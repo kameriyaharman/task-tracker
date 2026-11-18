@@ -1,8 +1,8 @@
 <?php
 /**
- * Demo data matching the design (Keshav Architectural Hardware, company code KESHAV).
- *   php database/seed.php            → loads schema + demo data
- * Owner login (admin panel): company KESHAV · mobile 9800011220 · password admin123
+ * Demo data matching the design: a sample team with tasks, attendance history, leave, chat, goals.
+ *   php database/seed.php [CODE]     → loads schema + demo company (default code DEMO)
+ * Owner login (admin panel): company DEMO · mobile 9800011220 · password admin123
  */
 declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(403); exit; }
@@ -12,15 +12,16 @@ use App\Core\Db;
 
 $pdo = Db::pdo();
 $pdo->exec(file_get_contents(__DIR__ . '/schema.sql'));
-if (Db::value("SELECT id FROM companies WHERE code = 'KESHAV'")) { echo "Demo company already exists.\n"; exit; }
+$code = strtoupper($argv[1] ?? getenv('DEMO_COMPANY_CODE') ?: 'DEMO');
+if (Db::value('SELECT id FROM companies WHERE code = ?', [$code])) { echo "Demo company $code already exists.\n"; exit; }
 
 $d = fn(string $rel) => date('Y-m-d H:i:s', strtotime($rel));
-$cid = Db::insert('companies', ['code' => 'KESHAV', 'name' => 'Keshav Architectural Hardware', 'shift_start' => '09:30:00', 'shift_end' => '18:30:00', 'whatsapp_enabled' => 1, 'gcal_enabled' => 1]);
+$cid = Db::insert('companies', ['code' => $code, 'name' => $code === 'KESHAV' ? 'Keshav Architectural Hardware' : 'Keshav Demo Team', 'shift_start' => '09:30:00', 'shift_end' => '18:30:00', 'whatsapp_enabled' => 1, 'gcal_enabled' => 1]);
 
 $dept = [];
 foreach (['Sales', 'Accounts', 'Operations', 'Marketing', 'HR', 'Field'] as $n) $dept[$n] = Db::insert('departments', ['company_id' => $cid, 'name' => $n]);
 
-$pw = password_hash('admin123', PASSWORD_DEFAULT);
+$pw = password_hash(getenv('DEMO_ADMIN_PASSWORD') ?: 'admin123', PASSWORD_DEFAULT);
 $u = [];
 $u['rajesh'] = Db::insert('users', ['company_id' => $cid, 'name' => 'Rajesh Jain', 'mobile' => '9800011220', 'email' => 'rajesh@keshav.in', 'designation' => 'Owner', 'role' => 'owner', 'password_hash' => $pw, 'location_consent' => 1]);
 $people = [
@@ -131,4 +132,4 @@ foreach ([['Customer testimonial reel', 'Instagram', 'idea', null], ['Year-end o
         'reach' => $st === 'live' ? 48000 : null, 'leads' => $st === 'live' ? 312 : null]);
 }
 
-echo "Seeded. Company code KESHAV · owner mobile 9800011220 · password admin123\n";
+echo "Seeded demo company $code · owner mobile 9800011220 · password admin123\n";

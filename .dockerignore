@@ -1,0 +1,8 @@
+.git
+**/node_modules
+admin/dist
+mobile
+backend/config/config.php
+backend/storage/uploads/*
+backend/storage/logs/*
+*.log
