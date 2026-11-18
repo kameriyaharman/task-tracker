@@ -20,9 +20,9 @@ RUN { echo 'upload_max_filesize=20M'; echo 'post_max_size=25M'; echo 'memory_lim
 
 COPY backend/ /var/www/backend/
 COPY --from=admin /app/dist/ /var/www/html/
-# API lives at /api → backend/public (index.php + .htaccess)
-RUN ln -s /var/www/backend/public /var/www/html/api \
- && mkdir -p /var/www/backend/storage/uploads /var/www/backend/storage/logs \
+# API lives at /api → backend/public (Apache Alias)
+COPY docker/apache-keshav.conf /etc/apache2/conf-enabled/keshav.conf
+RUN mkdir -p /var/www/backend/storage/uploads /var/www/backend/storage/logs \
  && chown -R www-data:www-data /var/www/backend/storage
 
 COPY docker/start.sh /usr/local/bin/start.sh
