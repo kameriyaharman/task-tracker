@@ -4,10 +4,15 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { api } from './api';
+import { diag } from './diag';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: true }),
-});
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: true }),
+  });
+} catch (e) {
+  diag('error', e);
+}
 
 /** Ask permission, get Expo push token and send it to the API (works for Android FCM + iOS APNs via Expo). */
 export async function registerPush() {
@@ -21,6 +26,7 @@ export async function registerPush() {
   const projectId = (Constants.expoConfig?.extra as any)?.eas?.projectId || undefined;
   const { data } = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
   await api('/me', { method: 'PATCH', body: { push_token: data } });
+  diag('push-registered');
 }
 
 /** Open the right screen when a notification is tapped. */

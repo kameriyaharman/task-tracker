@@ -5,6 +5,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../lib/auth';
+import { diag } from '../lib/diag';
 import { Brand } from '../components/ui';
 import { C } from '../lib/theme';
 
@@ -15,6 +16,8 @@ export default function Splash() {
   useEffect(() => {
     if (!ready) return;
     const id = setTimeout(async () => {
+      try {
+      diag('splash-ready', me ? 'logged-in' : 'logged-out');
       const chosen = await SecureStore.getItemAsync('wt_lang');
       if (!me) router.replace(chosen ? '/login' : '/language?next=login');
       else {
@@ -24,6 +27,10 @@ export default function Splash() {
           if (!r.success) return;
         }
         router.replace('/home');
+      }
+      } catch (e) {
+        diag('error', e);
+        router.replace('/login');
       }
     }, 700);
     return () => clearTimeout(id);

@@ -4,6 +4,7 @@ import { getLocales } from 'expo-localization';
 import { api, loadToken, saveToken, setUnauthorizedHandler } from './api';
 import { translate, type TKey } from './i18n';
 import { registerPush } from './push';
+import { diag } from './diag';
 
 export type Me = {
   id: number; name: string; role: 'owner' | 'manager' | 'employee'; mobile: string; designation?: string;
@@ -39,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setUnauthorizedHandler(() => signOut());
     (async () => {
+      try {
       const saved = await SecureStore.getItemAsync('wt_lang');
       const device = getLocales()[0]?.languageCode ?? 'en';
       setLangState(saved ?? device);
@@ -52,7 +54,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           /* offline or expired: stay on login */
         }
       }
+      } catch (e) {
+        diag('error', e); // storage/locale failure must not block start-up
+      }
       setReady(true);
+      diag('auth-ready');
     })();
   }, [signOut]);
 

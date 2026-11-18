@@ -4,6 +4,7 @@ use App\Controllers as C;
 /** @var App\Core\Router $r */
 
 $r->get('/', [C\HealthController::class, 'index'], 'public');
+$r->post('/client-log', [C\ClientLogController::class, 'store'], 'public');
 
 // Auth
 $r->post('/auth/request-otp', [C\AuthController::class, 'requestOtp'], 'public');

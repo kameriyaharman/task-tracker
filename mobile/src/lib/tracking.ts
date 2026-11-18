@@ -1,6 +1,7 @@
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { api } from './api';
+import { diag } from './diag';
 
 /**
  * Background location for field staff — runs only between punch-in and punch-out,
@@ -9,6 +10,7 @@ import { api } from './api';
  */
 export const TRACKING_TASK = 'keshav-location';
 
+try {
 TaskManager.defineTask(TRACKING_TASK, async ({ data, error }) => {
   if (error || !data) return;
   const { locations } = data as { locations: Location.LocationObject[] };
@@ -26,6 +28,9 @@ TaskManager.defineTask(TRACKING_TASK, async ({ data, error }) => {
     /* will retry with next batch */
   }
 });
+} catch (e) {
+  diag('error', e); // background tracking unavailable on this device; the rest of the app keeps working
+}
 
 export async function startTracking() {
   const fg = await Location.requestForegroundPermissionsAsync();
