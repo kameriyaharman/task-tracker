@@ -41,6 +41,12 @@ if (!Db::value('SELECT id FROM companies WHERE code = ?', [$code])) {
         ]);
         echo "Created company $code with owner account\n";
     }
+} elseif (getenv('RESET_ADMIN_PASSWORD') && getenv('ADMIN_PASSWORD')) {
+    // RESET_ADMIN_PASSWORD=1 sets the owner's password to ADMIN_PASSWORD on every start
+    $cid = (int) Db::value('SELECT id FROM companies WHERE code = ?', [$code]);
+    Db::exec("UPDATE users SET password_hash = ? WHERE company_id = ? AND role = 'owner'",
+        [password_hash((string) getenv('ADMIN_PASSWORD'), PASSWORD_DEFAULT), $cid]);
+    echo "Owner password reset from ADMIN_PASSWORD\n";
 }
 
 // One-time cleanup: REMOVE_COMPANY_CODE=DEMO deletes that company and every row that belongs to it.
