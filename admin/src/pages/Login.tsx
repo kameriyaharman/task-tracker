@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api';
 import { useAuth, type Me } from '../auth';
-import { Brand, ErrorBox, Field } from '../ui';
+import { Brand, ErrorBox, Field, PasswordInput } from '../ui';
 
 export default function Login() {
   const { login } = useAuth();
@@ -33,7 +33,7 @@ export default function Login() {
         <p className="muted" style={{ textAlign: 'center', margin: '4px auto 20px' }}>Team & task management · Admin login</p>
         <ErrorBox msg={err} />
         <Field label="Mobile or email"><input autoFocus value={f.login} onChange={(e) => setF({ ...f, login: e.target.value })} required /></Field>
-        <Field label="Password"><input type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} required /></Field>
+        <Field label="Password"><PasswordInput value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} required /></Field>
         <button className="btn" style={{ justifyContent: 'center' }} disabled={busy}>{busy ? 'Signing in…' : 'Login'}</button>
       </form>
     </div>

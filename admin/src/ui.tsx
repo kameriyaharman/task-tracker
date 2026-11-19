@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import { overdueLabel } from './format';
 
 const paths: Record<string, string> = {
@@ -108,6 +108,22 @@ export const Empty = ({ children }: { children: ReactNode }) => <div className="
 
 export function Bar({ pct }: { pct: number }) {
   return <div className="bar"><i style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} /></div>;
+}
+
+const EYE = 'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z';
+const EYE_OFF = 'M3 3l18 18M10.6 5.1A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.1M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7c1.8 0 3.4-.5 4.8-1.3M9.9 9.9a3 3 0 0 0 4.2 4.2';
+
+export function PasswordInput(props: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="pw-wrap">
+      <input {...props} type={show ? 'text' : 'password'} />
+      <button type="button" className="pw-eye" aria-label={show ? 'Hide password' : 'Show password'} title={show ? 'Hide password' : 'Show password'}
+        onClick={(e) => { e.preventDefault(); setShow((v) => !v); }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={show ? EYE_OFF : EYE} /></svg>
+      </button>
+    </div>
+  );
 }
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {

@@ -3,7 +3,7 @@ import { api } from '../api';
 import { useAuth } from '../auth';
 import { Topbar } from '../Layout';
 import { useApi } from '../hooks';
-import { Badge, Drawer, Empty, ErrorBox, Field, Icon, Loading, Person } from '../ui';
+import { Badge, Drawer, Empty, ErrorBox, Field, Icon, Loading, PasswordInput, Person } from '../ui';
 
 export default function Employees() {
   const { me } = useAuth();
@@ -77,7 +77,7 @@ function EmployeeForm({ u, people, depts, onClose, onSaved }: { u: any; people: 
         <Field label="Department"><select value={f.department_id} onChange={(e) => set('department_id', e.target.value)}><option value="">—</option>{depts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></Field>
         <Field label="Reports to"><select value={f.manager_id} onChange={(e) => set('manager_id', e.target.value)}><option value="">—</option>{people.filter((p) => p.id !== u.id && p.role !== 'employee').map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
         <Field label="Joined on"><input type="date" value={f.joined_on} onChange={(e) => set('joined_on', e.target.value)} /></Field>
-        {f.role !== 'employee' && <Field label={u.id ? 'New admin password' : 'Admin panel password'}><input type="password" value={f.password} onChange={(e) => set('password', e.target.value)} /></Field>}
+        {f.role !== 'employee' && <Field label={u.id ? 'New admin password' : 'Admin panel password'}><PasswordInput value={f.password} onChange={(e) => set('password', e.target.value)} /></Field>}
       </div>
       {u.id && <label className="check"><input type="checkbox" checked={f.is_active} onChange={(e) => set('is_active', e.target.checked)} /> Active (can log in)</label>}
       <button className="btn" disabled={!f.name || !f.mobile} onClick={save}>Save</button>
