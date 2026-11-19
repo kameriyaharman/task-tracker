@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FlatList, Modal, Pressable, Text, TextInput, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Modal, Pressable, Text, TextInput, View } from 'react-native';
 import { C } from '../lib/theme';
 import { Avatar } from './ui';
 
@@ -13,6 +13,7 @@ export function Picker({ visible, title, options, onPick, onClose, search }: {
   const list = q ? options.filter((o) => o.label.toLowerCase().includes(q.toLowerCase())) : options;
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
       <Pressable style={{ flex: 1, backgroundColor: 'rgba(43,26,16,.35)' }} onPress={onClose} />
       <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 18, maxHeight: '70%' }}>
         <Text style={{ fontSize: 17, fontWeight: '700', marginBottom: 12, color: C.text }}>{title}</Text>
@@ -31,6 +32,7 @@ export function Picker({ visible, title, options, onPick, onClose, search }: {
           )}
         />
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Linking, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { FlatList, Linking, Pressable, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAudioPlayer } from 'expo-audio';
 import { api, fileUrl, form } from '../../lib/api';
@@ -64,7 +64,7 @@ export default function ChatRoom() {
 
   return (
     <Screen back title={room?.name ?? t('chat')} scroll={false} pad={false}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={60}>
+      <View style={{ flex: 1 }}>
         <FlatList
           ref={list}
           data={msgs}
@@ -100,7 +100,7 @@ export default function ChatRoom() {
             <Pressable onPress={toggleVoice} style={[btn, voice.recording && { backgroundColor: C.red }]}><Text style={{ fontSize: 18 }}>{voice.recording ? '■' : '🎤'}</Text></Pressable>
           )}
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Screen>
   );
 }

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Pressable, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../lib/api';
@@ -36,7 +36,7 @@ export default function Login() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FBF7F1' }}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, padding: 24, justifyContent: 'center' }}>
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1, padding: 24, justifyContent: 'center' }}>
         <View style={{ alignItems: 'center', marginBottom: 26 }}><Brand stacked size={0.8} /></View>
         <T b size={24}>{t('welcome_back')}</T>
         <T muted style={{ marginBottom: 20, marginTop: 4 }}>{t('login_mobile')}</T>

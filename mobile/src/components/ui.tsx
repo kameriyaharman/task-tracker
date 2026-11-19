@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import {
   ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View,
   type TextInputProps, type StyleProp, type ViewStyle,
@@ -8,19 +8,30 @@ import { router } from 'expo-router';
 import { C, R, SERIF, avatarColor, statusColor } from '../lib/theme';
 import { dueLabel, overdueLabel } from '../lib/format';
 import { useAuth } from '../lib/auth';
+import { notifyInputFocus, useKeyboardAwareScroll, useKeyboardHeight } from '../lib/keyboard';
 
 export function Screen({ children, title, right, back, refreshing, onRefresh, scroll = true, pad = true }: {
   children: ReactNode; title?: string; right?: ReactNode; back?: boolean; refreshing?: boolean; onRefresh?: () => void; scroll?: boolean; pad?: boolean;
 }) {
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const { keyboardHeight, onScroll } = useKeyboardAwareScroll(scrollRef);
+  const kbStatic = useKeyboardHeight();
   const body = scroll ? (
     <ScrollView
-      contentContainerStyle={[pad && { padding: 16 }, { paddingBottom: 40 }]}
+      ref={scrollRef}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
+      contentContainerStyle={[pad && { padding: 16 }, { paddingBottom: 40 + keyboardHeight }]}
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
       refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={C.gold} /> : undefined}
     >
       {children}
     </ScrollView>
-  ) : <View style={[{ flex: 1 }, pad && { padding: 16 }]}>{children}</View>;
+  ) : (
+    // Non-scrolling screens (chat): shrink above the keyboard so the input bar stays visible.
+    <View style={[{ flex: 1, paddingBottom: kbStatic }, pad && { padding: 16, paddingBottom: 16 + kbStatic }]}>{children}</View>
+  );
   return (
     <SafeAreaView style={s.screen} edges={['top']}>
       {(title || back) && (
@@ -75,7 +86,7 @@ export function Input({ label, style, ...p }: TextInputProps & { label?: string 
   return (
     <View style={[s.inputWrap, style as any]}>
       {label && <Text style={s.inputLabel}>{label}</Text>}
-      <TextInput placeholderTextColor="#B9A994" style={s.input} {...p} />
+      <TextInput placeholderTextColor="#B9A994" style={s.input} {...p} onFocus={(e) => { notifyInputFocus(); p.onFocus?.(e); }} />
     </View>
   );
 }
