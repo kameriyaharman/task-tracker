@@ -99,7 +99,8 @@
         {
           "apiUrl": "https://keshav-web-production.up.railway.app/api"
         }
-      ]
+      ],
+      "./plugins/withNoR8Minify"
     ],
     "extra": {
       "apiUrl": "https://keshav-web-production.up.railway.app/api",
