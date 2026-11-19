@@ -9,7 +9,7 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "in.keshav.app",
+      "bundleIdentifier": "com.keshavhomesolution.app",
       "infoPlist": {
         "NSCameraUsageDescription": "Keshav uses the camera for punch-in selfies and task photo proof.",
         "NSLocationWhenInUseUsageDescription": "Keshav checks your location when you punch in and when you complete field tasks.",
@@ -22,7 +22,7 @@
       }
     },
     "android": {
-      "package": "in.keshav.app",
+      "package": "com.keshavhomesolution.app",
       "adaptiveIcon": {
         "backgroundColor": "#2B1A10",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -92,6 +92,12 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 200,
           "backgroundColor": "#2B1A10"
+        }
+      ],
+      [
+        "./plugins/withNativeCrashReporter",
+        {
+          "apiUrl": "https://keshav-web-production.up.railway.app/api"
         }
       ]
     ],
