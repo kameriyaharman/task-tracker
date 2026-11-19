@@ -1,0 +1,24 @@
+# Diagnostic: a blank Expo app built with the exact same pipeline as Dockerfile.apk.
+# If this also closes on launch, the build pipeline (not the Keshav code) is at fault.
+FROM reactnativecommunity/react-native-android:latest AS build
+WORKDIR /app
+COPY mobile/package.json ./ref-package.json
+RUN EXPO_VER=$(node -p "require('./ref-package.json').dependencies.expo") \
+ && npx -y create-expo-app@latest blank --template "blank-typescript@sdk-$(echo $EXPO_VER | sed 's/[^0-9].*//; s/~//')" --yes --no-install 2>/dev/null \
+ || npx -y create-expo-app@latest blank --template blank-typescript --yes --no-install
+WORKDIR /app/blank
+RUN npm install --legacy-peer-deps --no-audit --no-fund \
+ && node -e "const f='app.json';const a=require('./'+f);a.expo.name='Keshav Test';a.expo.android={...(a.expo.android||{}),package:'com.keshavhomesolution.test'};require('fs').writeFileSync(f,JSON.stringify(a,null,2))" \
+ && sed -i 's#Open up App.tsx to start working on your app!#Keshav TEST app chal raha hai ✓#' App.tsx
+ENV GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx6g -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=4" NODE_ENV=production EXPO_NO_TELEMETRY=1
+RUN npx expo prebuild --platform android --no-install --clean
+RUN cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon \
+ && mkdir -p /out && cp app/build/outputs/apk/release/app-release.apk /out/keshav.apk \
+ && node -p "'expo ' + require('/app/blank/package.json').dependencies.expo" > /out/version.txt
+
+FROM node:22-alpine
+WORKDIR /srv
+COPY --from=build /out/ ./
+COPY docker/apk-server.js ./server.js
+ENV APK_LABEL="Download TEST app (blank)"
+CMD ["node", "server.js"]

@@ -15,7 +15,7 @@ h1{font-family:Georgia,serif;letter-spacing:.08em;color:#6B3A1C;margin:.2em 0}sm
 a.b{display:block;margin:22px 0 12px;background:linear-gradient(135deg,#D4A24C,#A8722C);color:#fff;text-decoration:none;padding:15px;border-radius:12px;font-weight:600}
 p{font-size:13px;color:#8A7663;line-height:1.5}</style></head><body><div class="c">
 <h1>KESHAV</h1><div style="letter-spacing:.3em;font-weight:600;color:#6B3A1C;font-size:12px;margin-bottom:6px">HOME SOLUTION</div><small>CONSTRUCTION SOLUTION · HARDWARE · PAINT · ELECTRICAL</small>
-<a class="b" href="/keshav.apk">Download Android app (${size} MB)</a>
+<a class="b" href="/keshav.apk">${process.env.APK_LABEL || "Download Android app"} (${size} MB)</a>
 <p>After downloading, open the file and allow “Install unknown apps” for your browser when asked.<br>Built ${built}</p></div></body></html>`;
 
 http.createServer((req, res) => {
