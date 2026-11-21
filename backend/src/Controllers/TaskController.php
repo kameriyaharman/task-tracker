@@ -252,7 +252,7 @@ final class TaskController extends Controller
     {
         $t = $this->load($this->param('id'));
         $s = $this->req->require(['status'])['status'];
-        if (!in_array($s, ['not_started', 'in_progress', 'cancelled'], true)) throw HttpError::badRequest('Use /complete to finish a task');
+        if (!in_array($s, ['not_started', 'in_progress', 'on_hold', 'cancelled'], true)) throw HttpError::badRequest('Use /complete to finish a task');
         if ($s === 'cancelled' && !$this->canManage($t)) throw HttpError::forbidden();
         self::setStatus($t, $s, $this->uid());
         return $this->show();
@@ -266,6 +266,7 @@ final class TaskController extends Controller
         if ($status !== 'done') $data['completed_at'] = null;
         Db::update('tasks', (int) $t['id'], $data);
         Db::insert('task_activity', ['task_id' => $t['id'], 'user_id' => $byUser, 'action' => 'status:' . $status]);
+        if (in_array($status, ['done', 'cancelled'], true)) \App\Services\Erp\Workflow::onTaskClosed($t);
 
         if ($status === 'done' && (int) $t['assigned_by'] !== (int) $t['assigned_to']) {
             $who = Db::value('SELECT name FROM users WHERE id = ?', [$t['assigned_to']]);

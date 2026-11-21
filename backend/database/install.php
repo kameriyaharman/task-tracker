@@ -20,6 +20,27 @@ for ($i = 0; ; $i++) {
     }
 }
 Db::pdo()->exec(file_get_contents(__DIR__ . '/schema.sql'));
+Db::pdo()->exec(file_get_contents(__DIR__ . '/erp.sql'));
+
+// ── Column migrations for tables that already exist ──
+$col = fn(string $t, string $c) => (bool) Db::value('SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?', [$t, $c]);
+$colType = fn(string $t, string $c) => (string) Db::value('SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?', [$t, $c]);
+if (!$col('users', 'erp_role_id')) Db::pdo()->exec('ALTER TABLE users ADD COLUMN erp_role_id INT UNSIGNED NULL AFTER role');
+if (!$col('companies', 'erp_settings')) Db::pdo()->exec('ALTER TABLE companies ADD COLUMN erp_settings TEXT NULL');
+if (!$col('tasks', 'workflow_run_id')) {
+    Db::pdo()->exec('ALTER TABLE tasks ADD COLUMN workflow_run_id INT UNSIGNED NULL, ADD COLUMN workflow_step INT NULL,
+        ADD COLUMN ref_type VARCHAR(30) NULL, ADD COLUMN ref_id INT UNSIGNED NULL, ADD COLUMN escalated_at DATETIME NULL,
+        ADD KEY idx_task_wf (workflow_run_id), ADD KEY idx_task_ref (ref_type, ref_id)');
+}
+if (strpos($colType('tasks', 'status'), 'on_hold') === false) {
+    Db::pdo()->exec("ALTER TABLE tasks MODIFY status ENUM('not_started','in_progress','on_hold','done','cancelled') NOT NULL DEFAULT 'not_started'");
+}
+if (strpos($colType('tasks', 'source'), 'workflow') === false) {
+    Db::pdo()->exec("ALTER TABLE tasks MODIFY source ENUM('manual','voice','ai','recurring','whatsapp','workflow','erp') NOT NULL DEFAULT 'manual'");
+}
+if (strpos($colType('attachments', 'entity_type'), 'enum') === 0) {
+    Db::pdo()->exec('ALTER TABLE attachments MODIFY entity_type VARCHAR(30) NOT NULL');
+}
 echo "Schema OK\n";
 
 $code = strtoupper((string) (getenv('COMPANY_CODE') ?: 'KESHAV'));
@@ -48,6 +69,9 @@ if (!Db::value('SELECT id FROM companies WHERE code = ?', [$code])) {
         [password_hash((string) getenv('ADMIN_PASSWORD'), PASSWORD_DEFAULT), $cid]);
     echo "Owner password reset from ADMIN_PASSWORD\n";
 }
+
+// ERP defaults (warehouses, units, roles, approval rules, sample workflows) for every company
+foreach (Db::all('SELECT id FROM companies') as $c) App\Services\Erp\Seed::run((int) $c['id']);
 
 // One-time cleanup: REMOVE_COMPANY_CODE=DEMO deletes that company and every row that belongs to it.
 // Never touches the main company (COMPANY_CODE).

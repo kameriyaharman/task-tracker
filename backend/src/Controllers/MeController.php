@@ -18,6 +18,10 @@ final class MeController extends Controller
         if (!$u) throw HttpError::notFound();
         foreach (['notify_app', 'notify_whatsapp', 'location_consent', 'has_pin', 'gcal_enabled'] as $b) $u[$b] = (bool) $u[$b];
         $u['initials'] = self::initials($u['name']);
+        $full = Db::one('SELECT * FROM users WHERE id = ?', [$id]);
+        $u['erp_role_id'] = $full['erp_role_id'] ?? null;
+        $u['erp_role'] = $u['erp_role_id'] ? Db::value('SELECT name FROM erp_roles WHERE id = ?', [$u['erp_role_id']]) : null;
+        $u['erp_perms'] = \App\Services\Erp\Perm::perms($full);
         return $u;
     }
 

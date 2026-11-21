@@ -47,6 +47,25 @@ foreach ($over as $t) {
     }
 }
 
+// 3b. Escalation: still open 24 h after the deadline → assignee's manager and the boss are told (once)
+$esc = Db::all("SELECT t.* FROM tasks t WHERE t.status NOT IN ('done','cancelled') AND t.escalated_at IS NULL AND t.due_at < NOW() - INTERVAL 24 HOUR");
+foreach ($esc as $t) {
+    $cid = (int) $t['company_id'];
+    $who = Db::one('SELECT name, manager_id FROM users WHERE id = ?', [$t['assigned_to']]);
+    $to = array_map('intval', array_column(Db::all("SELECT id FROM users WHERE company_id = ? AND role = 'owner' AND is_active = 1", [$cid]), 'id'));
+    if (!empty($who['manager_id'])) $to[] = (int) $who['manager_id'];
+    foreach (array_unique($to) as $uid) {
+        if ($uid !== (int) $t['assigned_to']) Notifier::notify($cid, $uid, 'task_escalated', 'Escalated: ' . $t['title'], ($who['name'] ?? '') . ' · overdue by more than a day', 'task', (int) $t['id']);
+    }
+    Db::exec('UPDATE tasks SET escalated_at = NOW() WHERE id = ?', [$t['id']]);
+}
+
+// 3c. Workflow runs: advance any run whose current tasks are all closed (safety net)
+foreach (Db::all("SELECT r.id FROM workflow_runs r WHERE r.status = 'running' AND NOT EXISTS
+          (SELECT 1 FROM tasks t WHERE t.workflow_run_id = r.id AND t.status IN ('not_started','in_progress','on_hold'))") as $r) {
+    App\Services\Erp\Workflow::advance((int) $r['id']);
+}
+
 // 4. At 23:55 close punches left open (worked till shift end)
 if (date('H:i') >= '23:50') {
     Db::exec("UPDATE attendance a JOIN companies c ON c.id = a.company_id

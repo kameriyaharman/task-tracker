@@ -119,3 +119,95 @@ $r->get('/files/{id}', [C\SettingsController::class, 'file']);
 // Webhooks
 $r->get('/webhooks/whatsapp', [C\WebhookController::class, 'verify'], 'public');
 $r->post('/webhooks/whatsapp', [C\WebhookController::class, 'receive'], 'public');
+
+// ───────── ERP: hardware showroom ─────────
+use App\Controllers\Erp as E;
+$r->get('/erp/meta', [E\ReportController::class, 'meta']);
+$r->get('/erp/dashboard', [E\ReportController::class, 'dashboard']);
+$r->get('/erp/reports/{type}', [E\ReportController::class, 'report']);
+
+$r->post('/erp/masters/products/import', [E\MasterController::class, 'importProducts']);
+$r->get('/erp/masters/{entity}', [E\MasterController::class, 'index']);
+$r->post('/erp/masters/{entity}', [E\MasterController::class, 'store']);
+$r->get('/erp/masters/{entity}/{id}', [E\MasterController::class, 'show']);
+$r->patch('/erp/masters/{entity}/{id}', [E\MasterController::class, 'update']);
+
+$r->get('/erp/purchase-orders', [E\PurchaseController::class, 'index']);
+$r->post('/erp/purchase-orders', [E\PurchaseController::class, 'store']);
+$r->get('/erp/purchase-orders/{id}', [E\PurchaseController::class, 'show']);
+$r->patch('/erp/purchase-orders/{id}', [E\PurchaseController::class, 'update']);
+$r->post('/erp/purchase-orders/{id}/submit', [E\PurchaseController::class, 'submit']);
+$r->post('/erp/purchase-orders/{id}/status', [E\PurchaseController::class, 'status']);
+$r->get('/erp/grns', [E\PurchaseController::class, 'grnIndex']);
+$r->post('/erp/grns', [E\PurchaseController::class, 'grnStore']);
+$r->get('/erp/grns/{id}', [E\PurchaseController::class, 'grnShow']);
+
+$r->get('/erp/stock', [E\InventoryController::class, 'index']);
+$r->get('/erp/stock/ledger', [E\InventoryController::class, 'ledger']);
+$r->post('/erp/stock/adjust', [E\InventoryController::class, 'adjust']);
+$r->post('/erp/stock/transfer', [E\InventoryController::class, 'transfer']);
+
+$r->get('/erp/price', [E\SalesController::class, 'price']);
+$r->get('/erp/sales', [E\SalesController::class, 'index']);
+$r->post('/erp/sales', [E\SalesController::class, 'store']);
+$r->get('/erp/sales/{id}', [E\SalesController::class, 'show']);
+$r->patch('/erp/sales/{id}', [E\SalesController::class, 'update']);
+$r->post('/erp/sales/{id}/submit', [E\SalesController::class, 'submit']);
+$r->post('/erp/sales/{id}/convert', [E\SalesController::class, 'convert']);
+$r->post('/erp/sales/{id}/cancel', [E\SalesController::class, 'cancel']);
+
+$r->get('/erp/deliveries', [E\DeliveryController::class, 'index']);
+$r->post('/erp/deliveries', [E\DeliveryController::class, 'store']);
+$r->get('/erp/deliveries/{id}', [E\DeliveryController::class, 'show']);
+$r->patch('/erp/deliveries/{id}', [E\DeliveryController::class, 'update']);
+$r->post('/erp/deliveries/{id}/status', [E\DeliveryController::class, 'status']);
+
+$r->get('/erp/payments', [E\AccountsController::class, 'payments']);
+$r->post('/erp/payments', [E\AccountsController::class, 'store']);
+$r->get('/erp/books', [E\AccountsController::class, 'book']);
+$r->get('/erp/outstanding', [E\AccountsController::class, 'outstanding']);
+$r->get('/erp/statement', [E\AccountsController::class, 'statement']);
+
+$r->get('/erp/recovery', [E\RecoveryController::class, 'index']);
+$r->get('/erp/recovery/my', [E\RecoveryController::class, 'mine']);
+$r->post('/erp/recovery', [E\RecoveryController::class, 'store']);
+
+$r->get('/erp/returns', [E\ReturnController::class, 'index']);
+$r->post('/erp/returns', [E\ReturnController::class, 'store']);
+$r->get('/erp/returns/{id}', [E\ReturnController::class, 'show']);
+
+$r->get('/erp/expenses', [E\ExpenseController::class, 'index']);
+$r->post('/erp/expenses', [E\ExpenseController::class, 'store']);
+
+$r->get('/erp/complaints', [E\ComplaintController::class, 'index']);
+$r->post('/erp/complaints', [E\ComplaintController::class, 'store']);
+$r->patch('/erp/complaints/{id}', [E\ComplaintController::class, 'update']);
+$r->post('/erp/complaints/{id}', [E\ComplaintController::class, 'update']);
+
+$r->get('/erp/approvals', [E\ApprovalController::class, 'index']);
+$r->post('/erp/approvals/{id}', [E\ApprovalController::class, 'act'], 'manager');
+$r->get('/erp/approval-rules', [E\ApprovalController::class, 'rules'], 'manager');
+$r->post('/erp/approval-rules', [E\ApprovalController::class, 'saveRules'], 'owner');
+
+$r->get('/erp/workflows', [E\WorkflowController::class, 'index'], 'manager');
+$r->post('/erp/workflows', [E\WorkflowController::class, 'store'], 'owner');
+$r->patch('/erp/workflows/{id}', [E\WorkflowController::class, 'update'], 'owner');
+$r->delete('/erp/workflows/{id}', [E\WorkflowController::class, 'destroy'], 'owner');
+$r->post('/erp/workflows/{id}/start', [E\WorkflowController::class, 'start'], 'manager');
+$r->get('/erp/workflow-runs', [E\WorkflowController::class, 'runs'], 'manager');
+$r->post('/erp/workflow-runs/{id}', [E\WorkflowController::class, 'runAction'], 'manager');
+
+$r->get('/erp/roles', [E\RoleController::class, 'index']);
+$r->post('/erp/roles', [E\RoleController::class, 'store'], 'owner');
+$r->patch('/erp/roles/{id}', [E\RoleController::class, 'update'], 'owner');
+$r->delete('/erp/roles/{id}', [E\RoleController::class, 'destroy'], 'owner');
+$r->post('/erp/roles/assign', [E\RoleController::class, 'assign'], 'manager');
+
+$r->get('/erp/tally/settings', [E\TallyController::class, 'settings'], 'owner');
+$r->post('/erp/tally/settings', [E\TallyController::class, 'saveSettings'], 'owner');
+$r->get('/erp/tally/queue', [E\TallyController::class, 'queue'], 'owner');
+$r->post('/erp/tally/retry', [E\TallyController::class, 'retry'], 'owner');
+$r->post('/erp/tally/resync-all', [E\TallyController::class, 'resyncAll'], 'owner');
+$r->get('/erp/tally/connector', [E\TallyController::class, 'connector'], 'owner');
+$r->get('/tally/pending', [E\TallyController::class, 'pending'], 'public');
+$r->post('/tally/result', [E\TallyController::class, 'result'], 'public');
