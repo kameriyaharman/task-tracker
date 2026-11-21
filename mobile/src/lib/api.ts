@@ -43,7 +43,8 @@ export async function api<T = any>(
   let res: Response;
   try {
     res = await fetch(`${API_URL}${path}${qs ? `?${qs}` : ''}`, { method: opts.method ?? (body ? 'POST' : 'GET'), headers, body });
-  } catch {
+  } catch (e) {
+    try { require('./diag').diag('fetch-failed', `${opts.method ?? (body ? 'POST' : 'GET')} ${path} ${(e as Error)?.message ?? e}`); } catch { /* ignore */ }
     throw new ApiError(0, 'No internet connection');
   }
   const data = await res.json().catch(() => ({}));

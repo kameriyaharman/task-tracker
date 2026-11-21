@@ -1,6 +1,7 @@
 import { Pressable, Text, View, type ColorValue } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../lib/auth';
 import { C } from '../../lib/theme';
 
@@ -8,6 +9,8 @@ const Icon = ({ glyph, color }: { glyph: string; color: ColorValue }) => <Text s
 
 export default function TabsLayout() {
   const { me, ready, t } = useAuth();
+  // Android 15+ draws apps behind the system navigation bar: keep the tab bar above it
+  const insets = useSafeAreaInsets();
   if (ready && !me) return <Redirect href="/login" />;
 
   return (
@@ -16,7 +19,7 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: C.gold,
         tabBarInactiveTintColor: '#A8957F',
-        tabBarStyle: { height: 64, paddingTop: 6, paddingBottom: 8, borderTopColor: C.line },
+        tabBarStyle: { height: 64 + insets.bottom, paddingTop: 6, paddingBottom: 8 + insets.bottom, borderTopColor: C.line },
         tabBarLabelStyle: { fontSize: 11 },
       }}
     >

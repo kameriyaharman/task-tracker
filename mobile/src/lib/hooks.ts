@@ -29,5 +29,7 @@ export function useApi<T = any>(path: string | null, query?: Record<string, any>
     }, [reload]),
   );
 
-  return { data, loading, error, reload, setData };
+  // `loading` drives the pull-to-refresh spinner, so it is only true on a *re*load: the first load
+  // already shows the screen's own <Loading /> (two spinners at once looked broken)
+  return { data, loading: loading && data !== null, error, reload, setData };
 }
