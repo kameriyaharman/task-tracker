@@ -185,3 +185,27 @@ table.t { width: 100%; border-collapse: collapse; }
 .pw-wrap input { padding-right: 42px; }
 .pw-eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; display: grid; place-items: center; border: 0; background: transparent; color: var(--muted); cursor: pointer; border-radius: 8px; padding: 0; }
 .pw-eye:hover { color: var(--gold); background: var(--gold-soft, rgba(168,114,44,.1)); }
+
+/* ───────── ERP ───────── */
+.nav a { position: relative; }
+.nav-badge { margin-left: auto; background: var(--red); color: #fff; font-style: normal; font-size: 10.5px; border-radius: 10px; padding: 1px 7px; }
+.pop-list { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px); background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(43,26,16,.14); max-height: 320px; overflow: auto; }
+.pop-item { display: flex; justify-content: space-between; gap: 10px; padding: 9px 12px; cursor: pointer; font-size: 13px; }
+.pop-item:hover { background: #FBF7F1; }
+.t.items input, .t.items select { padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+.totals { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 18px; padding: 10px 6px 2px; font-size: 13px; color: var(--muted); }
+.totals b { color: var(--text); font-size: 15px; }
+.doc h2 { font-size: 18px; }
+.steps { margin: 0 0 12px; padding-left: 20px; }
+.steps li { margin-bottom: 8px; }
+.steps li.par { margin-left: 14px; }
+.step-card { margin: 12px 0; background: #FDFBF7; }
+.list-item.click { cursor: pointer; }
+details summary { outline: none; }
+@media print {
+  .side, .topbar, .no-print, .chips { display: none !important; }
+  .main { padding: 0 !important; margin: 0 !important; }
+  .card { box-shadow: none !important; border: 0 !important; }
+  body { background: #fff !important; }
+}
+.drawer.wide { width: min(940px, 100%); }

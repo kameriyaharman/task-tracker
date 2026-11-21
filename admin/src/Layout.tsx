@@ -5,26 +5,38 @@ import { useApi } from './hooks';
 import { Avatar, Brand, Drawer, Icon } from './ui';
 import { ago } from './format';
 import { api } from './api';
+import { useMeta } from './erp/common';
 
-const nav: { group: string; items: [string, string, string, boolean?][] }[] = [
+type NavItem = [string, string, string, string?]; // path, label, icon, ERP module needed
+const erpNav: { group: string; items: NavItem[] }[] = [
+  { group: 'SHOWROOM', items: [['/erp', 'Business dashboard', 'chart', 'reports'], ['/erp/sales', 'Sales & bills', 'receipt', 'sales'], ['/erp/deliveries', 'Deliveries', 'truck', 'delivery'], ['/erp/recovery', 'Recovery (udhari)', 'phone', 'recovery'], ['/erp/complaints', 'Complaints', 'alert', 'complaints']] },
+  { group: 'STOCK & PURCHASE', items: [['/erp/purchase', 'Purchase orders', 'cart', 'purchase'], ['/erp/grn', 'Goods received', 'box', 'inventory'], ['/erp/stock', 'Stock', 'box', 'inventory'], ['/erp/returns', 'Returns', 'undo', 'returns'], ['/erp/masters/products', 'Products & parties', 'tag', 'masters']] },
+  { group: 'MONEY', items: [['/erp/accounts', 'Accounts', 'wallet', 'accounts'], ['/erp/expenses', 'Expenses', 'receipt']] },
+  { group: 'CONTROL', items: [['/erp/approvals', 'Approvals', 'check'], ['/erp/workflows', 'Workflows', 'flow'], ['/erp/access', 'Roles & approval rules', 'shield'], ['/erp/reports', 'Business reports', 'chart', 'reports'], ['/erp/tally', 'Tally sync', 'sync', 'tally']] },
+];
+const nav: { group: string; items: NavItem[] }[] = [
   { group: 'WORK', items: [['/', 'Dashboard', 'dashboard'], ['/tasks', 'Tasks', 'tasks'], ['/recurring', 'Recurring tasks', 'repeat'], ['/goals', 'Goals', 'goal'], ['/campaigns', 'Campaigns', 'megaphone']] },
   { group: 'PEOPLE', items: [['/employees', 'Employees', 'users'], ['/attendance', 'Attendance & timesheets', 'clock'], ['/leave', 'Leave', 'calendar'], ['/location', 'Live location', 'pin'], ['/performance', 'Performance & rewards', 'trophy']] },
   { group: 'INSIGHTS', items: [['/reports', 'Reports', 'chart'], ['/settings', 'Settings', 'settings']] },
 ];
 
 export default function Layout() {
-  const { logout } = useAuth();
+  const { logout, me } = useAuth();
+  const { meta } = useMeta();
+  const allowed = (mod?: string) => !mod || (mod === 'tally' ? me?.role === 'owner' : !!meta?.perms?.[mod]);
+  const groups = [...erpNav, ...nav].map((g) => ({ ...g, items: g.items.filter(([, , , mod]) => allowed(mod)) })).filter((g) => g.items.length);
   return (
     <div className="shell">
       <aside className="side">
         <Brand />
         <nav className="nav">
-          {nav.map((g) => (
+          {groups.map((g) => (
             <div key={g.group}>
               <div className="nav-group">{g.group}</div>
               {g.items.map(([to, label, icon]) => (
-                <NavLink key={to} to={to} end={to === '/'}>
+                <NavLink key={to} to={to} end={to === '/' || to === '/erp'}>
                   <Icon name={icon} /> {label}
+                  {to === '/erp/approvals' && !!meta?.pending_approvals && <i className="nav-badge">{meta.pending_approvals}</i>}
                 </NavLink>
               ))}
             </div>

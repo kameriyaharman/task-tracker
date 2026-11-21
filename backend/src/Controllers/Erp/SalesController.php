@@ -63,6 +63,8 @@ final class SalesController extends Base
         $priceType = in_array($this->req->input('price_type'), ['retail', 'wholesale', 'contractor'], true) ? $this->req->input('price_type') : ($c['type'] ?? 'retail');
         [$lines, $sub, $disc, $tax, $total] = $this->lines((array) $this->req->input('items', []), true, $priceType . '_price');
         $mode = in_array($this->req->input('payment_mode'), ['cash', 'upi', 'bank', 'card', 'credit'], true) ? $this->req->input('payment_mode') : 'cash';
+        // Check stock before saving a bill that is being finalised, so a failed bill doesn't leave a draft behind
+        if ($type === 'invoice' && $this->req->input('submit')) \App\Services\Erp\Stock::assertAvailable($this->cid, $this->warehouse($this->req->int('warehouse_id')), $lines);
         $data = ['doc_type' => $type, 'customer_id' => $cust, 'customer_name' => $c ? null : ($this->req->input('customer_name') ?: null),
                  'customer_mobile' => $c ? null : (preg_replace('/\D/', '', (string) $this->req->input('customer_mobile')) ?: null),
                  'price_type' => $priceType, 'warehouse_id' => $this->warehouse($this->req->int('warehouse_id')), 'payment_mode' => $mode,

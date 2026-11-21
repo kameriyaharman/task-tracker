@@ -23,6 +23,19 @@ const paths: Record<string, string> = {
   logout: 'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9',
   download: 'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3',
   whatsapp: 'M3 21l1.7-5A9 9 0 1112 21a9 9 0 01-4.3-1.1z',
+  box: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8',
+  cart: 'M3 3h2l2.4 12.4a2 2 0 002 1.6h8.8a2 2 0 002-1.6L22 7H6M10 21a1 1 0 100-2 1 1 0 000 2zM18 21a1 1 0 100-2 1 1 0 000 2z',
+  receipt: 'M5 2h14v20l-3-2-2 2-2-2-2 2-2-2-3 2zM9 7h6M9 11h6M9 15h4',
+  truck: 'M1 4h14v12H1zM15 9h4l3 3v4h-7M5.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM18.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5z',
+  wallet: 'M3 7a2 2 0 012-2h14v4M3 7v11a2 2 0 002 2h16V9H5a2 2 0 01-2-2zM17 14h.01',
+  flow: 'M5 3h5v5H5zM14 16h5v5h-5zM7.5 8v4a2 2 0 002 2h7v2',
+  shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+  undo: 'M9 14L4 9l5-5M4 9h11a5 5 0 010 10h-3',
+  alert: 'M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z',
+  phone: 'M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1.9.4 1.8.7 2.7a2 2 0 01-.5 2.1L8 9.8a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.7.7a2 2 0 011.7 2z',
+  sync: 'M21 12a9 9 0 01-15.5 6.3L3 16M3 12a9 9 0 0115.5-6.3L21 8M21 3v5h-5M3 21v-5h5',
+  tag: 'M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L2 12V2h10l8.6 8.6a2 2 0 010 2.8zM7 7h.01',
+  print: 'M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z',
 };
 
 export function Icon({ name, size = 16 }: { name: keyof typeof paths | string; size?: number }) {
@@ -88,10 +101,10 @@ export function TaskStatus({ t }: { t: { display_status: string; overdue_minutes
 
 export const Pri = ({ p }: { p: string }) => <span className={`pri ${p}`}>{p[0].toUpperCase() + p.slice(1)}</span>;
 
-export function Drawer({ title, onClose, children, modal }: { title: ReactNode; onClose: () => void; children: ReactNode; modal?: boolean }) {
+export function Drawer({ title, onClose, children, modal, wide }: { title: ReactNode; onClose: () => void; children: ReactNode; modal?: boolean; wide?: boolean }) {
   return (
     <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={modal ? 'modal-c' : 'drawer'}>
+      <div className={modal ? 'modal-c' : `drawer${wide ? ' wide' : ''}`}>
         <h2>
           {title}
           <button className="x" onClick={onClose} aria-label="Close">×</button>
