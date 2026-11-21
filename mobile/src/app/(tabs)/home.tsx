@@ -13,6 +13,7 @@ export default function Home() {
   const punchedIn = a?.is_punched_in;
 
   const shortcuts: [string, string, string][] = [
+    ['🏬', 'Showroom', '/erp'],
     ['🗓', t('my_attendance'), '/attendance'], ['🏖', t('apply_leave'), '/leave'], ['⏱', t('timesheet'), '/timesheet'], ['📅', t('calendar'), '/calendar'],
     ['🎯', t('goals'), '/goals'], ['🏆', t('performance'), '/performance'],
     ...(isManager ? ([['✅', t('approvals'), '/approvals'], ['📍', t('team_location'), '/team-map'], ['✨', t('ai_suggestions'), '/ai']] as [string, string, string][]) : []),

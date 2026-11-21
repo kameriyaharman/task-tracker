@@ -60,6 +60,7 @@ export default function Me() {
       </Card>
 
       <Card style={{ marginTop: 14, paddingVertical: 0 }}>
+        <Item label="🏬 Showroom work (stock, delivery, udhari, expenses)" onPress={() => router.push('/erp')} />
         <Item label={t('my_attendance')} onPress={() => router.push('/attendance')} />
         <Item label={t('apply_leave')} onPress={() => router.push('/leave')} />
         <Item label={t('timesheet')} onPress={() => router.push('/timesheet')} />

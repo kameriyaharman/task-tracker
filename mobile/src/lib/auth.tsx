@@ -10,6 +10,7 @@ export type Me = {
   id: number; name: string; role: 'owner' | 'manager' | 'employee'; mobile: string; designation?: string;
   company_name: string; company_code: string; department_name?: string; language: string; initials: string;
   notify_app: boolean; notify_whatsapp: boolean; location_consent: boolean; has_pin: boolean; gcal_enabled: boolean;
+  erp_role?: string | null; erp_perms?: Record<string, 'view' | 'edit'>;
 };
 
 type Ctx = {
