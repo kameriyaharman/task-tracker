@@ -77,7 +77,7 @@ export function DataTable<T extends Record<string, any>>({ rows, cols, onRow, em
         <tbody>
           {rows.map((r, i) => (
             <tr key={r.id ?? i} className={onRow ? 'click' : ''} onClick={onRow ? () => onRow(r) : undefined}>
-              {cols.map(([, f, a], j) => <td key={j} style={a === 'r' ? { textAlign: 'right', whiteSpace: 'nowrap' } : undefined}>{f(r)}</td>)}
+              {cols.map(([, f, a], j) => { const v = f(r); return <td key={j} className={typeof v === 'string' && /^[A-Z]{2,4}\/\d{2}-\d{2}\/\d{3,}$/.test(v) ? 'nw' : undefined} style={a === 'r' ? { textAlign: 'right', whiteSpace: 'nowrap' } : undefined}>{v}</td>; })}
             </tr>
           ))}
         </tbody>
@@ -282,7 +282,12 @@ export function ReportTable({ rows }: { rows: any[] }) {
         <thead><tr>{keys.map((k) => <th key={k} style={isNum(k) ? { textAlign: 'right' } : undefined}>{k.replace(/_/g, ' ')}</th>)}</tr></thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={i}>{keys.map((k) => <td key={k} style={isNum(k) ? { textAlign: 'right' } : undefined}>{isNum(k) && r[k] !== null ? (money(k) ? rs(r[k], 2) : qty(r[k])) : (r[k] ?? '—')}</td>)}</tr>
+            <tr key={i}>{keys.map((k) => {
+              const v = r[k];
+              const isDate = typeof v === 'string' && /^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}(:\d{2})?)?$/.test(v);
+              const shown = isNum(k) && v !== null ? (money(k) ? rs(v, 2) : qty(v)) : isDate ? (v.length > 10 ? dt(v) : d8(v)) : (v ?? '—');
+              return <td key={k} style={{ ...(isNum(k) ? { textAlign: 'right' } : {}), ...(isNum(k) || isDate || String(v ?? '').length <= 22 ? { whiteSpace: 'nowrap' } : {}) }}>{shown}</td>;
+            })}</tr>
           ))}
         </tbody>
         {keys.some((k) => isNum(k) && money(k)) && (

@@ -4,7 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import './styles.css';
 import 'leaflet/dist/leaflet.css';
 import { AuthProvider, useAuth } from './auth';
-import Layout from './Layout';
+import Layout, { erpNav } from './Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Tasks from './pages/Tasks';
@@ -19,7 +19,7 @@ import Performance from './pages/Performance';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import { Loading } from './ui';
-import { MetaProvider } from './erp/common';
+import { MetaProvider, useMeta } from './erp/common';
 import BusinessDashboard from './erp/BusinessDashboard';
 import Approvals from './erp/Approvals';
 import Masters from './erp/Masters';
@@ -29,6 +29,16 @@ import { SalesDetail, SalesList } from './erp/Sales';
 import Accounts, { Recovery } from './erp/Accounts';
 import { Complaints, Deliveries, Expenses, Returns } from './erp/Operations';
 import { AccessControl, ErpReports, TallySync, Workflows } from './erp/Control';
+
+/** Boss & managers land on the team dashboard; office staff on their first showroom page. */
+function Home() {
+  const { me } = useAuth();
+  const { meta } = useMeta();
+  if (me?.role !== 'employee') return <Dashboard />;
+  if (!meta) return <Loading />;
+  const first = erpNav.flatMap((g) => g.items).find(([, , , mod]) => mod && mod !== 'boss_or_manager' && mod !== 'tally' && meta.perms?.[mod]);
+  return <Navigate to={first ? first[0] : '/erp/expenses'} replace />;
+}
 
 function Gate() {
   const { me, ready } = useAuth();
@@ -59,7 +69,7 @@ function Gate() {
         <Route path="erp/access" element={<AccessControl />} />
         <Route path="erp/reports" element={<ErpReports />} />
         <Route path="erp/tally" element={<TallySync />} />
-        <Route index element={<Dashboard />} />
+        <Route index element={<Home />} />
         <Route path="tasks" element={<Tasks />} />
         <Route path="recurring" element={<Recurring />} />
         <Route path="goals" element={<Goals />} />

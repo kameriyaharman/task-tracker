@@ -21,6 +21,17 @@ final class Config
         date_default_timezone_set(self::$c['timezone'] ?? 'Asia/Kolkata');
     }
 
+    /** Override one setting at runtime (e.g. switch push off while loading demo data). */
+    public static function set(string $key, $value): void
+    {
+        $node = &self::$c;
+        foreach (explode('.', $key) as $k) {
+            if (!isset($node[$k]) || !is_array($node[$k])) $node[$k] = $node[$k] ?? [];
+            $node = &$node[$k];
+        }
+        $node = $value;
+    }
+
     public static function get(string $key, $default = null)
     {
         $node = self::$c;

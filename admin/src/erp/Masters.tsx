@@ -178,7 +178,7 @@ function Setup() {
       {(items ?? []).map((x) => <div key={x.id ?? x.name} className="list-item between"><span>{x.name}</span>{x.type && <span className="muted">{x.type}</span>}</div>)}
       {can(meta, 'masters', true) && (
         <div className="row" style={{ marginTop: 10 }}>
-          <input className="input" value={names[entity] ?? ''} onChange={(e) => setNames((n) => ({ ...n, [entity]: e.target.value }))} placeholder={`New ${title.toLowerCase().replace(/s$/, '')}`} />
+          <input className="input" value={names[entity] ?? ''} onChange={(e) => setNames((n) => ({ ...n, [entity]: e.target.value }))} placeholder={{ warehouses: 'New godown / showroom', categories: 'New category', brands: 'New brand', units: 'New unit' }[entity] ?? 'New'} />
           <button className="btn sm" disabled={!names[entity]} onClick={() => add(entity, extra)}>Add</button>
         </div>
       )}

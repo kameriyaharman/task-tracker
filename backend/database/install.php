@@ -95,6 +95,13 @@ if ($remove !== '' && $remove !== $code && ($rid = Db::value('SELECT id FROM com
     echo "Removed company $remove and all its data\n";
 }
 
+// Keshav demo data (one user per role + sample data everywhere). CLEAR_DEMO_DATA=1 removes it.
+if (filter_var(getenv('CLEAR_DEMO_DATA') ?: '0', FILTER_VALIDATE_BOOLEAN)) {
+    passthru(PHP_BINARY . ' ' . escapeshellarg(__DIR__ . '/demo_keshav.php') . ' --clear');
+} elseif (filter_var(getenv('KESHAV_DEMO') ?: '0', FILTER_VALIDATE_BOOLEAN)) {
+    passthru(PHP_BINARY . ' ' . escapeshellarg(__DIR__ . '/demo_keshav.php'));
+}
+
 if (filter_var(getenv('DEMO_DATA') ?: '0', FILTER_VALIDATE_BOOLEAN)) {
     passthru(PHP_BINARY . ' ' . escapeshellarg(__DIR__ . '/seed.php') . ' ' . escapeshellarg(getenv('DEMO_COMPANY_CODE') ?: 'DEMO'));
 }

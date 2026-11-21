@@ -79,7 +79,7 @@ final class AuthController extends Controller
         if (!$u || !$u['password_hash'] || !password_verify($in['password'], $u['password_hash'])) {
             throw HttpError::unauthorized('Invalid login');
         }
-        if (!Auth::isManager($u)) throw HttpError::forbidden('Admin panel is for owners and managers');
+        if (!Auth::isManager($u) && empty($u['erp_role_id'])) throw HttpError::forbidden('Admin panel is for the boss, managers and office staff with a showroom role');
         return $this->session($u);
     }
 

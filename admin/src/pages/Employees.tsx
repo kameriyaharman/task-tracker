@@ -4,6 +4,7 @@ import { useAuth } from '../auth';
 import { Topbar } from '../Layout';
 import { useApi } from '../hooks';
 import { Badge, Drawer, Empty, ErrorBox, Field, Icon, Loading, PasswordInput, Person } from '../ui';
+import { useMeta } from '../erp/common';
 
 export default function Employees() {
   const { me } = useAuth();
@@ -27,7 +28,7 @@ export default function Employees() {
         <div className="card" style={{ padding: 6 }}>
           {data.length ? (
             <table className="t">
-              <thead><tr><th>Name</th><th>Mobile</th><th>Department</th><th>Reports to</th><th>Role</th><th>Location</th></tr></thead>
+              <thead><tr><th>Name</th><th>Mobile</th><th>Department</th><th>Reports to</th><th>Role</th><th>Showroom role</th><th>Location</th></tr></thead>
               <tbody>
                 {data.map((u) => (
                   <tr key={u.id} className="click" onClick={() => setEdit(u)} style={{ opacity: +u.is_active ? 1 : 0.5 }}>
@@ -36,6 +37,7 @@ export default function Employees() {
                     <td>{u.department_name ?? '—'}</td>
                     <td>{u.manager_name ?? '—'}</td>
                     <td><Badge s={u.role === 'owner' ? 'scheduled' : u.role === 'manager' ? 'in_progress' : ''}>{u.role}</Badge></td>
+                    <td>{u.erp_role_name ?? <span className="muted">—</span>}</td>
                     <td>{+u.location_consent ? <Badge s="present">Shared</Badge> : <span className="muted">Off</span>}</td>
                   </tr>
                 ))}
@@ -52,11 +54,12 @@ export default function Employees() {
 
 function EmployeeForm({ u, people, depts, onClose, onSaved }: { u: any; people: any[]; depts: any[]; onClose: () => void; onSaved: () => void }) {
   const { me } = useAuth();
-  const [f, setF] = useState({ name: u.name ?? '', mobile: u.mobile ?? '', email: u.email ?? '', designation: u.designation ?? '', role: u.role ?? 'employee', department_id: u.department_id ?? '', manager_id: u.manager_id ?? '', joined_on: u.joined_on ?? '', is_active: u.id ? !!+u.is_active : true, password: '' });
+  const { meta } = useMeta();
+  const [f, setF] = useState({ erp_role_id: u.erp_role_id ?? '', name: u.name ?? '', mobile: u.mobile ?? '', email: u.email ?? '', designation: u.designation ?? '', role: u.role ?? 'employee', department_id: u.department_id ?? '', manager_id: u.manager_id ?? '', joined_on: u.joined_on ?? '', is_active: u.id ? !!+u.is_active : true, password: '' });
   const [err, setErr] = useState<string | null>(null);
   const set = (k: string, v: unknown) => setF((s) => ({ ...s, [k]: v }));
   const save = async () => {
-    const body: Record<string, unknown> = { ...f, department_id: f.department_id || null, manager_id: f.manager_id || null };
+    const body: Record<string, unknown> = { ...f, department_id: f.department_id || null, manager_id: f.manager_id || null, erp_role_id: f.erp_role_id || null };
     if (!f.password) delete body.password;
     try {
       if (u.id) await api(`/employees/${u.id}`, { method: 'PATCH', body }); else await api('/employees', { body });
@@ -77,7 +80,8 @@ function EmployeeForm({ u, people, depts, onClose, onSaved }: { u: any; people: 
         <Field label="Department"><select value={f.department_id} onChange={(e) => set('department_id', e.target.value)}><option value="">—</option>{depts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></Field>
         <Field label="Reports to"><select value={f.manager_id} onChange={(e) => set('manager_id', e.target.value)}><option value="">—</option>{people.filter((p) => p.id !== u.id && p.role !== 'employee').map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
         <Field label="Joined on"><input type="date" value={f.joined_on} onChange={(e) => set('joined_on', e.target.value)} /></Field>
-        {f.role !== 'employee' && <Field label={u.id ? 'New admin password' : 'Admin panel password'}><PasswordInput value={f.password} onChange={(e) => set('password', e.target.value)} /></Field>}
+        {f.role === 'employee' && <Field label="Showroom role (what they can do)"><select value={f.erp_role_id} onChange={(e) => set('erp_role_id', e.target.value)}><option value="">— none (app tasks & attendance only) —</option>{(meta?.erp_roles ?? []).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select></Field>}
+        {(f.role !== 'employee' || f.erp_role_id) && <Field label={u.id ? 'New admin panel password (leave empty to keep)' : 'Admin panel password (optional)'}><PasswordInput value={f.password} onChange={(e) => set('password', e.target.value)} /></Field>}
       </div>
       {u.id && <label className="check"><input type="checkbox" checked={f.is_active} onChange={(e) => set('is_active', e.target.checked)} /> Active (can log in)</label>}
       <button className="btn" disabled={!f.name || !f.mobile} onClick={save}>Save</button>

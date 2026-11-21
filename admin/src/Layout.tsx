@@ -8,11 +8,11 @@ import { api } from './api';
 import { useMeta } from './erp/common';
 
 type NavItem = [string, string, string, string?]; // path, label, icon, ERP module needed
-const erpNav: { group: string; items: NavItem[] }[] = [
+export const erpNav: { group: string; items: NavItem[] }[] = [
   { group: 'SHOWROOM', items: [['/erp', 'Business dashboard', 'chart', 'reports'], ['/erp/sales', 'Sales & bills', 'receipt', 'sales'], ['/erp/deliveries', 'Deliveries', 'truck', 'delivery'], ['/erp/recovery', 'Recovery (udhari)', 'phone', 'recovery'], ['/erp/complaints', 'Complaints', 'alert', 'complaints']] },
   { group: 'STOCK & PURCHASE', items: [['/erp/purchase', 'Purchase orders', 'cart', 'purchase'], ['/erp/grn', 'Goods received', 'box', 'inventory'], ['/erp/stock', 'Stock', 'box', 'inventory'], ['/erp/returns', 'Returns', 'undo', 'returns'], ['/erp/masters/products', 'Products & parties', 'tag', 'masters']] },
   { group: 'MONEY', items: [['/erp/accounts', 'Accounts', 'wallet', 'accounts'], ['/erp/expenses', 'Expenses', 'receipt']] },
-  { group: 'CONTROL', items: [['/erp/approvals', 'Approvals', 'check'], ['/erp/workflows', 'Workflows', 'flow'], ['/erp/access', 'Roles & approval rules', 'shield'], ['/erp/reports', 'Business reports', 'chart', 'reports'], ['/erp/tally', 'Tally sync', 'sync', 'tally']] },
+  { group: 'CONTROL', items: [['/erp/approvals', 'Approvals', 'check', 'boss_or_manager'], ['/erp/workflows', 'Workflows', 'flow', 'boss_or_manager'], ['/erp/access', 'Roles & approval rules', 'shield', 'boss_or_manager'], ['/erp/reports', 'Business reports', 'chart', 'reports'], ['/erp/tally', 'Tally sync', 'sync', 'tally']] },
 ];
 const nav: { group: string; items: NavItem[] }[] = [
   { group: 'WORK', items: [['/', 'Dashboard', 'dashboard'], ['/tasks', 'Tasks', 'tasks'], ['/recurring', 'Recurring tasks', 'repeat'], ['/goals', 'Goals', 'goal'], ['/campaigns', 'Campaigns', 'megaphone']] },
@@ -23,11 +23,14 @@ const nav: { group: string; items: NavItem[] }[] = [
 export default function Layout() {
   const { logout, me } = useAuth();
   const { meta } = useMeta();
-  const allowed = (mod?: string) => !mod || (mod === 'tally' ? me?.role === 'owner' : !!meta?.perms?.[mod]);
-  const groups = [...erpNav, ...nav].map((g) => ({ ...g, items: g.items.filter(([, , , mod]) => allowed(mod)) })).filter((g) => g.items.length);
+  const allowed = (mod?: string) => !mod || (mod === 'tally' ? me?.role === 'owner' : mod === 'boss_or_manager' ? me?.role !== 'employee' : !!meta?.perms?.[mod]);
+  // Office staff (employee + showroom role) only get the showroom sections; tasks & attendance are in their app
+  const groups = [...erpNav, ...(me?.role === 'employee' ? [] : nav)].map((g) => ({ ...g, items: g.items.filter(([, , , mod]) => allowed(mod)) })).filter((g) => g.items.length);
+  const [menu, setMenu] = useState(false);
   return (
     <div className="shell">
-      <aside className="side">
+      <div className="mobile-bar"><b style={{ letterSpacing: '.08em' }}>KESHAV</b><button onClick={() => setMenu(!menu)} aria-label="Menu">{menu ? '×' : '☰'}</button></div>
+      <aside className={`side ${menu ? 'open' : ''}`} onClick={(e) => { if ((e.target as HTMLElement).closest('a')) setMenu(false); }}>
         <Brand />
         <nav className="nav">
           {groups.map((g) => (
