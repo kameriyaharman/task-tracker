@@ -76,9 +76,9 @@ final class AuthController extends Controller
             'SELECT * FROM users WHERE company_id = ? AND (email = ? OR mobile = ?) AND is_active = 1',
             [self::companyId(), $login, self::normaliseMobile($login)]
         );
-        if (!$u || !$u['password_hash'] || !password_verify($in['password'], $u['password_hash'])) {
-            throw HttpError::unauthorized('Invalid login');
-        }
+        if (!$u) throw HttpError::unauthorized('This mobile number / email is not registered. Ask the admin to add you in Employees.');
+        if (!$u['password_hash']) throw HttpError::unauthorized('No password is set for this user. Staff log in on the mobile app with OTP — or ask the admin to set a password.');
+        if (!password_verify($in['password'], $u['password_hash'])) throw HttpError::unauthorized('Wrong password. Please try again.');
         if (!Auth::isManager($u) && empty($u['erp_role_id'])) throw HttpError::forbidden('Admin panel is for the boss, managers and office staff with a showroom role');
         return $this->session($u);
     }
