@@ -25,6 +25,13 @@ export default function TaskDetail() {
   const isMine = task.assigned_to === me?.id;
   const done = task.status === 'done';
   const checked = task.checklist.filter((c: any) => +c.is_done).length;
+  const openSteps = task.checklist.length - checked;
+  const shareWa = () => {
+    const num = String(task.assignee_mobile ?? '').replace(/\D/g, '');
+    const steps = task.checklist.length ? '\n' + task.checklist.map((c: any, i: number) => `${i + 1}. ${c.label}${c.assignee_name ? ` (${first(c.assignee_name)})` : ''}`).join('\n') : '';
+    const text = `📋 *${task.title}*${task.description ? `\n${task.description}` : ''}\nDue: ${dueLabel(task.due_at, t)}${steps}${task.proof_type ? `\nProof: ${task.proof_type}` : ''}`;
+    Linking.openURL(`https://wa.me/${num.length === 10 ? '91' + num : num}?text=${encodeURIComponent(text)}`);
+  };
 
   const askExtension = () =>
     Alert.alert('Ask for more time', 'Extend deadline by', [
@@ -44,7 +51,7 @@ export default function TaskDetail() {
     <Screen back title={t('task')} onRefresh={reload}>
       <ErrorText msg={err} />
       <Row gap={6}>
-        <Text style={{ color: task.priority === 'high' ? C.red : task.priority === 'medium' ? C.amber : C.green, fontWeight: '600' }}>{t(task.priority)}</Text>
+        <Text style={{ color: task.priority === 'high' || task.priority === 'urgent' ? C.red : task.priority === 'medium' ? C.amber : C.green, fontWeight: '600' }}>{task.priority === 'urgent' ? '⚡ ' : ''}{t(task.priority)}</Text>
         <Text style={{ color: C.muted }}>·</Text>
         <Badge s={st} label={st === 'overdue' ? `${t('overdue')} ${overdueLabel(task.overdue_minutes)}` : t(st)} />
       </Row>
@@ -54,17 +61,23 @@ export default function TaskDetail() {
         <T muted>{first(task.assignee_name)} · by {first(task.assigner_name)} · {dueLabel(task.due_at, t)}</T>
       </Row>
       {task.description ? <T style={{ marginTop: 12 }}>{task.description}</T> : null}
+      <Text onPress={shareWa} style={{ color: '#128C7E', fontWeight: '600', marginTop: 10 }}>🟢 Share on WhatsApp</Text>
 
       {task.checklist.length > 0 && (
         <Section title={`${t('checklist')} (${checked}/${task.checklist.length})`}>
           <Card style={{ paddingVertical: 4 }}>
-            {task.checklist.map((c: any) => (
-              <Pressable key={c.id} disabled={done} onPress={() => act(`/tasks/${task.id}/checklist/${c.id}`, { is_done: !+c.is_done }, 'PATCH')}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11 }}>
+            {task.checklist.map((c: any, i: number) => (
+              <Pressable key={c.id} disabled={!c.can_tick} onPress={() => act(`/tasks/${task.id}/checklist/${c.id}`, { is_done: !+c.is_done }, 'PATCH')}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11, opacity: c.locked ? 0.5 : 1 }}>
                 <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: +c.is_done ? C.gold : '#D8C9B3', backgroundColor: +c.is_done ? C.gold : '#fff', alignItems: 'center', justifyContent: 'center' }}>
-                  {+c.is_done ? <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>✓</Text> : null}
+                  {+c.is_done ? <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>✓</Text> : c.locked ? <Text style={{ fontSize: 10 }}>🔒</Text> : null}
                 </View>
-                <T style={{ textDecorationLine: +c.is_done ? 'line-through' : 'none', color: +c.is_done ? C.muted : C.text }}>{c.label}</T>
+                <View style={{ flex: 1 }}>
+                  <T style={{ textDecorationLine: +c.is_done ? 'line-through' : 'none', color: +c.is_done ? C.muted : C.text }}>{i + 1}. {c.label}</T>
+                  <Text style={{ fontSize: 11.5, color: C.muted }}>
+                    {+c.is_done ? `✓ ${first(c.done_by_name ?? '')}` : `👤 ${first(c.assignee_name ?? task.assignee_name)}${c.locked ? ' · after previous step' : ''}`}
+                  </Text>
+                </View>
               </Pressable>
             ))}
           </Card>
@@ -105,7 +118,8 @@ export default function TaskDetail() {
         <View style={{ marginTop: 22, gap: 10 }}>
           {task.status === 'not_started' && <Button variant="ghost" title={t('start')} onPress={() => act(`/tasks/${task.id}/status`, { status: 'in_progress' })} />}
           {!task.proof_type && <Button variant="ghost" title={`${t('complete_task')} + 📷`} onPress={() => router.push(`/task/complete/${task.id}`)} />}
-          <Button title={t('mark_complete')} onPress={() => (task.proof_type ? router.push(`/task/complete/${task.id}`) : act(`/tasks/${task.id}/complete`))} />
+          <Button title={task.proof_type ? `${t('mark_complete')} (${task.proof_type.replace(/,/g, ' + ')})` : t('mark_complete')}
+            onPress={() => (openSteps && !task.can_manage ? setErr(`Finish the checklist first (${openSteps} left)`) : task.proof_type ? router.push(`/task/complete/${task.id}`) : act(`/tasks/${task.id}/complete`))} />
           {isMine && task.due_at && <Text style={{ textAlign: 'center', color: C.gold, marginTop: 4 }} onPress={askExtension}>Need more time?</Text>}
         </View>
       )}

@@ -19,7 +19,7 @@ final class Upload
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
         'audio/mpeg' => 'mp3', 'audio/mp4' => 'm4a', 'audio/x-m4a' => 'm4a', 'audio/aac' => 'aac',
         'audio/ogg' => 'ogg', 'audio/webm' => 'webm', 'audio/wav' => 'wav', 'audio/x-wav' => 'wav',
-        'video/mp4' => 'mp4',
+        'video/mp4' => 'mp4', 'video/webm' => 'webm', 'video/quicktime' => 'mov', 'image/gif' => 'gif', 'image/heif' => 'heic',
     ];
 
     public static function dir(): string

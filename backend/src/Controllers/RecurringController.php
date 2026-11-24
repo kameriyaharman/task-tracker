@@ -20,7 +20,9 @@ final class RecurringController extends Controller
             'frequency' => in_array($repeat['frequency'], ['daily', 'weekly', 'monthly', 'custom'], true) ? $repeat['frequency'] : 'daily',
             'weekdays' => $weekdays ?: null, 'month_day' => isset($repeat['month_day']) ? (int) $repeat['month_day'] : null,
             'interval_days' => isset($repeat['interval_days']) ? (int) $repeat['interval_days'] : null,
-            'due_time' => date('H:i:s', strtotime($dueTime)), 'ends_on' => $repeat['ends_on'] ?? null,
+            'due_time' => date('H:i:s', strtotime($dueTime)), 'ends_on' => ($repeat['ends_on'] ?? null) ?: null,
+            'starts_on' => ($repeat['starts_on'] ?? null) ?: null,
+            'start_time' => !empty($repeat['start_time']) ? date('H:i:s', strtotime($repeat['start_time'])) : null,
             'proof_type' => $task['proof_type'] ?? null, 'checklist_json' => json_encode($checklist, JSON_UNESCAPED_UNICODE),
             'rotation_json' => $rotation ? json_encode($rotation) : null,
             'rotation_index' => $rotation ? 1 : 0, // index 0 gets the first occurrence created by TaskController
@@ -56,17 +58,18 @@ final class RecurringController extends Controller
     public static function label(array $r): string
     {
         $days = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        $time = date('g A', strtotime($r['due_time']));
+        $fmt = fn($x) => date(date('i', strtotime($x)) === '00' ? 'g A' : 'g:i A', strtotime($x));
+        $time = !empty($r['start_time']) ? $fmt($r['start_time']) . '–' . $fmt($r['due_time']) : $fmt($r['due_time']);
         switch ($r['frequency']) {
             case 'daily': return "Daily $time";
             case 'weekly':
                 $wd = array_map(fn($d) => $days[(int) $d] ?? '', explode(',', (string) $r['weekdays']));
-                return count($wd) === 1 ? 'Every ' . $wd[0] : implode(', ', $wd);
+                return (count($wd) === 1 ? 'Every ' . $wd[0] : implode(', ', $wd)) . " · $time";
             case 'monthly':
                 $n = (int) $r['month_day'];
                 $suf = ($n % 100 >= 11 && $n % 100 <= 13) ? 'th' : (['th', 'st', 'nd', 'rd'][$n % 10] ?? 'th');
-                return "$n$suf monthly";
-            default: return 'Every ' . (int) $r['interval_days'] . ' days';
+                return "Every month on $n$suf · $time";
+            default: return 'Every ' . (int) $r['interval_days'] . " days · $time";
         }
     }
 
@@ -82,14 +85,14 @@ final class RecurringController extends Controller
         $task = TaskController::cleanTaskData($this->req->only(['title', 'description', 'department_id', 'priority', 'proof_type', 'goal_id']));
         $task['assigned_to'] = $assignee ?: (int) $rotation[0];
         $task['due_at'] = null;
-        $repeat = $this->req->only(['frequency', 'weekdays', 'month_day', 'interval_days', 'due_time', 'ends_on']) + ['rotation' => $rotation];
+        $repeat = $this->req->only(['frequency', 'weekdays', 'month_day', 'interval_days', 'due_time', 'ends_on', 'starts_on', 'start_time']) + ['rotation' => $rotation];
         $checklist = (array) $this->req->input('checklist', []);
         $id = self::createRule($this->cid, $this->uid(), $task, $repeat, $checklist);
         Db::exec('UPDATE recurring_rules SET rotation_index = 0 WHERE id = ?', [$id]);
 
         // If it fires today and time hasn't passed, create today's occurrence immediately.
         $r = Db::one('SELECT * FROM recurring_rules WHERE id = ?', [$id]);
-        if (RecurringEngine::firesOn($r, strtotime('today'))) RecurringEngine::generate($r, date('Y-m-d'));
+        if (RecurringEngine::firesOn($r, strtotime('today')) && strtotime(date('Y-m-d') . ' ' . $r['due_time']) > time()) RecurringEngine::generate($r, date('Y-m-d'));
         return ['id' => $id];
     }
 
@@ -97,7 +100,8 @@ final class RecurringController extends Controller
     public function update(): array
     {
         $id = $this->param('id');
-        $data = $this->req->only(['title', 'description', 'priority', 'frequency', 'weekdays', 'month_day', 'interval_days', 'due_time', 'ends_on', 'proof_type', 'is_active']);
+        $data = $this->req->only(['title', 'description', 'priority', 'frequency', 'weekdays', 'month_day', 'interval_days', 'due_time', 'ends_on', 'starts_on', 'start_time', 'proof_type', 'is_active']);
+        foreach (['ends_on', 'starts_on', 'start_time'] as $k) if (array_key_exists($k, $data) && !$data[$k]) $data[$k] = null;
         if (isset($data['weekdays']) && is_array($data['weekdays'])) $data['weekdays'] = implode(',', $data['weekdays']);
         if (isset($data['proof_type']) && is_array($data['proof_type'])) $data['proof_type'] = implode(',', $data['proof_type']) ?: null;
         if ($this->req->input('assigned_to')) $data['assignee_id'] = $this->req->int('assigned_to');
@@ -119,7 +123,7 @@ final class RecurringController extends Controller
     /** POST /recurring/preview {frequency, weekdays, month_day, interval_days, ends_on} → next 3 dates */
     public function preview(): array
     {
-        $r = $this->req->only(['frequency', 'weekdays', 'month_day', 'interval_days', 'ends_on']) + ['ends_on' => null, 'weekdays' => null, 'month_day' => null, 'interval_days' => null, 'created_at' => date('Y-m-d')];
+        $r = $this->req->only(['frequency', 'weekdays', 'month_day', 'interval_days', 'ends_on', 'starts_on']) + ['starts_on' => null, 'ends_on' => null, 'weekdays' => null, 'month_day' => null, 'interval_days' => null, 'created_at' => date('Y-m-d')];
         if (is_array($r['weekdays'])) $r['weekdays'] = implode(',', $r['weekdays']);
         return ['next' => RecurringEngine::nextDates($r, 3)];
     }

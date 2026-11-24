@@ -41,6 +41,34 @@ if (strpos($colType('tasks', 'source'), 'workflow') === false) {
 if (strpos($colType('attachments', 'entity_type'), 'enum') === 0) {
     Db::pdo()->exec('ALTER TABLE attachments MODIFY entity_type VARCHAR(30) NOT NULL');
 }
+// v3 — client feedback: urgent priority, checklist owners, repeat window, task templates
+foreach (['tasks', 'recurring_rules'] as $tb) {
+    if (strpos($colType($tb, 'priority'), 'urgent') === false) {
+        Db::pdo()->exec("ALTER TABLE $tb MODIFY priority ENUM('low','medium','high','urgent') NOT NULL DEFAULT 'medium'");
+    }
+}
+if (!$col('task_checklist', 'assigned_to')) {
+    Db::pdo()->exec('ALTER TABLE task_checklist ADD COLUMN assigned_to INT UNSIGNED NULL, ADD COLUMN done_by INT UNSIGNED NULL, ADD COLUMN done_at DATETIME NULL, ADD KEY idx_cl_user (assigned_to)');
+}
+if (!$col('recurring_rules', 'starts_on')) {
+    Db::pdo()->exec('ALTER TABLE recurring_rules ADD COLUMN starts_on DATE NULL, ADD COLUMN start_time TIME NULL');
+}
+Db::pdo()->exec("CREATE TABLE IF NOT EXISTS task_templates (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  company_id INT UNSIGNED NOT NULL,
+  code VARCHAR(20) NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  description TEXT NULL,
+  department_id INT UNSIGNED NULL,
+  priority ENUM('low','medium','high','urgent') NOT NULL DEFAULT 'medium',
+  proof_type VARCHAR(40) NULL,
+  checklist_json TEXT NULL,
+  due_hours SMALLINT NULL,
+  created_by INT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_tpl_code (company_id, code),
+  FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 echo "Schema OK\n";
 
 $code = strtoupper((string) (getenv('COMPANY_CODE') ?: 'KESHAV'));
@@ -72,6 +100,24 @@ if (!Db::value('SELECT id FROM companies WHERE code = ?', [$code])) {
 
 // ERP defaults (warehouses, units, roles, approval rules, sample workflows) for every company
 foreach (Db::all('SELECT id FROM companies') as $c) App\Services\Erp\Seed::run((int) $c['id']);
+
+// Starter task templates (standard showroom jobs) — only when a company has none yet
+foreach (Db::all('SELECT id FROM companies') as $c) {
+    if (Db::value('SELECT 1 FROM task_templates WHERE company_id = ?', [$c['id']])) continue;
+    $dept = fn(string $n) => Db::value('SELECT id FROM departments WHERE company_id = ? AND name LIKE ? LIMIT 1', [$c['id'], "%$n%"]) ?: null;
+    $tpl = [
+        ['T01', 'Collect bill, enter in Tally, make payment', 'Accounts', 'high', 'photo', 8, ['Collect the bill from vendor', 'Bill received at office', 'Entry done in Tally', 'Payment made']],
+        ['T02', 'Pay shop rent', 'Accounts', 'high', 'photo', 24, ['Rent amount confirmed', 'Payment done', 'Receipt photo uploaded']],
+        ['T03', 'Vehicle service', 'Delivery', 'medium', 'photo', 48, ['Book service slot', 'Vehicle dropped', 'Service bill collected']],
+        ['T04', 'Daily stock count — fast-moving items', 'Stores', 'medium', 'photo', 4, ['Count fast-moving items', 'Note shortages', 'Update stock register']],
+        ['T05', 'Follow up pending payment with customer', 'Sales', 'urgent', null, 4, []],
+        ['T06', 'Post today\'s offer on Instagram & WhatsApp status', 'Marketing', 'medium', 'link', 4, ['Design ready', 'Posted on Instagram', 'WhatsApp status updated']],
+    ];
+    foreach ($tpl as [$code, $title, $d, $pri, $proof, $hrs, $cl]) {
+        Db::insert('task_templates', ['company_id' => $c['id'], 'code' => $code, 'title' => $title, 'department_id' => $dept($d),
+            'priority' => $pri, 'proof_type' => $proof, 'due_hours' => $hrs, 'checklist_json' => json_encode($cl, JSON_UNESCAPED_UNICODE)]);
+    }
+}
 
 // One-time cleanup: REMOVE_COMPANY_CODE=DEMO deletes that company and every row that belongs to it.
 // Never touches the main company (COMPANY_CODE).

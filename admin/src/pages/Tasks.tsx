@@ -14,6 +14,7 @@ export default function Tasks() {
   const [filter, setFilter] = useState('all');
   const [view, setView] = useState<'list' | 'board' | 'calendar'>('list');
   const [dept, setDept] = useState('');
+  const [pri, setPri] = useState('');
   const [q, setQ] = useState(params.get('q') ?? '');
   const [creating, setCreating] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
@@ -26,7 +27,7 @@ export default function Tasks() {
     return { from: toLocalInput(from).slice(0, 10), to: toLocalInput(to).slice(0, 10) };
   }, [month]);
   const { data, error, loading, reload } = useApi<any>('/tasks', {
-    scope: 'team', filter: view === 'calendar' ? 'all' : filter, department_id: dept, q, per_page: view === 'list' ? 100 : 200,
+    scope: 'team', filter: view === 'calendar' ? 'all' : filter, department_id: dept, priority: pri, q, per_page: view === 'list' ? 100 : 200,
     ...(view === 'calendar' ? calRange : {}),
   });
   const items: any[] = data?.items ?? [];
@@ -36,12 +37,18 @@ export default function Tasks() {
       <Topbar title="Tasks" search={q} onSearch={(v) => { setQ(v); setParams(v ? { q: v } : {}); }}
         action={<button className="btn" onClick={() => setCreating(true)}><Icon name="plus" /> New task</button>} />
       <ErrorBox msg={error} />
+      <div className="task-search">
+        <input className="input" type="search" value={q} placeholder="🔍 Search tasks — title, person, checklist…" onChange={(e) => { setQ(e.target.value); setParams(e.target.value ? { q: e.target.value } : {}); }} />
+        <select className="input" value={pri} onChange={(e) => setPri(e.target.value)}>
+          <option value="">Any priority</option><option value="urgent">Urgent</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
+        </select>
+      </div>
       <div className="chips">
         {filters.map(([k, l]) => (
           <span key={k} className={`chip ${filter === k ? 'on' : ''}`} onClick={() => setFilter(k)}>{l}{data?.counts?.[k] !== undefined && <b>{data.counts[k]}</b>}</span>
         ))}
         <select className="input" style={{ width: 170 }} value={dept} onChange={(e) => setDept(e.target.value)}>
-          <option value="">By department</option>
+          <option value="">All departments</option>
           {depts.data?.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
         </select>
         <div className="seg">
@@ -52,12 +59,12 @@ export default function Tasks() {
       {loading && !data ? <Loading /> : view === 'list' ? (
         <div className="card" style={{ padding: 6 }}>
           {items.length ? (
-            <table className="t">
+            <table className="t tasks-t">
               <thead><tr><th>Task</th><th>Assigned to</th><th>By</th><th>Due</th><th>Priority</th><th>Status</th></tr></thead>
               <tbody>
                 {items.map((t) => (
                   <tr key={t.id} className="click" onClick={() => setOpen(t.id)}>
-                    <td style={{ fontWeight: 500 }}>{t.title}{t.checklist_total > 0 && <span className="muted"> · {t.checklist_done}/{t.checklist_total}</span>}</td>
+                    <td style={{ fontWeight: 500 }}>{t.title}<div className="muted mobile-only">{t.assignee_name.split(' ')[0]} · {dueLabel(t.due_at)}</div>{t.checklist_total > 0 && <span className="muted"> · {t.checklist_done}/{t.checklist_total}</span>}</td>
                     <td><Person name={t.assignee_name.split(' ')[0]} initials={t.assignee_initials} /></td>
                     <td>{t.assigner_name.split(' ')[0]}</td>
                     <td>{t.repeat_frequency ? `${t.repeat_frequency[0].toUpperCase()}${t.repeat_frequency.slice(1)} · ` : ''}{dueLabel(t.due_at)}</td>

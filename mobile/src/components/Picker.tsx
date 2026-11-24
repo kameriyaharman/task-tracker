@@ -6,8 +6,8 @@ import { Avatar } from './ui';
 export type Option = { value: any; label: string; sub?: string; initials?: string };
 
 /** Bottom-sheet list picker (people, priority, leave type…) */
-export function Picker({ visible, title, options, onPick, onClose, search }: {
-  visible: boolean; title: string; options: Option[]; onPick: (v: any) => void; onClose: () => void; search?: boolean;
+export function Picker({ visible, title, options, onPick, onClose, search, multi }: {
+  visible: boolean; title: string; options: Option[]; onPick: (v: any) => void; onClose: () => void; search?: boolean; multi?: boolean;
 }) {
   const [q, setQ] = useState('');
   const list = q ? options.filter((o) => o.label.toLowerCase().includes(q.toLowerCase())) : options;
@@ -16,13 +16,16 @@ export function Picker({ visible, title, options, onPick, onClose, search }: {
       <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
       <Pressable style={{ flex: 1, backgroundColor: 'rgba(43,26,16,.35)' }} onPress={onClose} />
       <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 18, maxHeight: '70%' }}>
-        <Text style={{ fontSize: 17, fontWeight: '700', marginBottom: 12, color: C.text }}>{title}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: C.text }}>{title}</Text>
+          {multi && <Text onPress={() => { onClose(); setQ(''); }} style={{ color: C.gold, fontWeight: '700', fontSize: 15 }}>Done</Text>}
+        </View>
         {search && <TextInput value={q} onChangeText={setQ} placeholder="Search…" style={{ borderWidth: 1, borderColor: C.line, borderRadius: 10, padding: 10, marginBottom: 10 }} />}
         <FlatList
           data={list}
           keyExtractor={(o) => String(o.value)}
           renderItem={({ item }) => (
-            <Pressable onPress={() => { onPick(item.value); onClose(); setQ(''); }} style={{ paddingVertical: 12, flexDirection: 'row', gap: 10, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#F1E8DB' }}>
+            <Pressable onPress={() => { onPick(item.value); if (!multi) { onClose(); setQ(''); } }} style={{ paddingVertical: 12, flexDirection: 'row', gap: 10, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#F1E8DB' }}>
               {item.initials && <Avatar initials={item.initials} size={28} />}
               <View>
                 <Text style={{ fontSize: 15, color: C.text }}>{item.label}</Text>

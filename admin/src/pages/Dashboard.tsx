@@ -25,34 +25,6 @@ export default function Dashboard() {
             <div className="card kpi"><small>Goals on track</small><br /><b>{d.kpis.goals_on_track} / {d.kpis.goals_total}</b></div>
           </div>
 
-          <div className="grid g21">
-            <div className="card">
-              <h3>Tasks completed vs created · last 8 weeks
-                <span className="legend"><span><i style={{ background: '#D4A24C' }} />Completed</span><span><i style={{ background: 'var(--walnut)' }} />Created</span></span>
-              </h3>
-              <div className="bars">
-                {d.weekly.map((w: any) => (
-                  <div className="w" key={w.label} title={`${w.completed} completed · ${w.created} created`}>
-                    <div className="pair">
-                      <i style={{ height: `${(w.completed / max) * 100}%` }} />
-                      <i className="b" style={{ height: `${(w.created / max) * 100}%` }} />
-                    </div>
-                    <small>{w.label}</small>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="card">
-              <h3>Overdue by person</h3>
-              {d.overdue_by_person.length ? d.overdue_by_person.map((p: any) => (
-                <div key={p.id} className="list-item between">
-                  <Person name={p.name} sub={p.department} />
-                  <span className="badge overdue">{p.overdue}</span>
-                </div>
-              )) : <div className="empty">Nothing overdue 🎉</div>}
-            </div>
-          </div>
-
           <div className="grid g3">
             <div className="card">
               <h3>Department progress</h3>
@@ -84,6 +56,31 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
+            <div className="card">
+              <h3>Overdue by person</h3>
+              {d.overdue_by_person.length ? d.overdue_by_person.map((p: any) => (
+                <div key={p.id} className="list-item between">
+                  <Person name={p.name} sub={p.department} />
+                  <span className="badge overdue">{p.overdue}</span>
+                </div>
+              )) : <div className="empty">Nothing overdue 🎉</div>}
+            </div>
+          <div className="card">
+              <h3>Tasks completed vs created · last 8 weeks
+                <span className="legend"><span><i style={{ background: '#D4A24C' }} />Completed</span><span><i style={{ background: 'var(--walnut)' }} />Created</span></span>
+              </h3>
+              <div className="bars">
+                {d.weekly.map((w: any) => (
+                  <div className="w" key={w.label} title={`${w.completed} completed · ${w.created} created`}>
+                    <div className="pair">
+                      <i style={{ height: `${(w.completed / max) * 100}%` }} />
+                      <i className="b" style={{ height: `${(w.created / max) * 100}%` }} />
+                    </div>
+                    <small>{w.label}</small>
+                  </div>
+                ))}
+              </div>
+            </div>
         </div>
       )}
       {creating && <TaskForm onClose={() => setCreating(false)} onSaved={() => { setCreating(false); reload(); }} />}

@@ -28,6 +28,12 @@ $r->post('/tasks/{id}/comments', [C\TaskController::class, 'comment']);
 $r->post('/tasks/{id}/attachments', [C\TaskController::class, 'attach']);
 $r->post('/tasks/{id}/checklist', [C\TaskController::class, 'addChecklist']);
 $r->patch('/tasks/{id}/checklist/{itemId}', [C\TaskController::class, 'toggleChecklist']);
+$r->get('/task-templates', [C\TaskTemplateController::class, 'index']);
+$r->post('/task-templates', [C\TaskTemplateController::class, 'store'], 'manager');
+$r->patch('/task-templates/{id}', [C\TaskTemplateController::class, 'update'], 'manager');
+$r->delete('/task-templates/{id}', [C\TaskTemplateController::class, 'destroy'], 'manager');
+$r->get('/task-defaults', [C\TaskTemplateController::class, 'defaults']);
+$r->patch('/task-defaults', [C\TaskTemplateController::class, 'saveDefaults'], 'manager');
 
 // Recurring
 $r->get('/recurring', [C\RecurringController::class, 'index'], 'manager');

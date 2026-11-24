@@ -82,20 +82,23 @@ export function Button({ title, onPress, variant = 'primary', disabled, loading,
   );
 }
 
-export function Input({ label, style, ...p }: TextInputProps & { label?: string }) {
+export function Input({ label, style, error, ...p }: TextInputProps & { label?: string; error?: string | null }) {
   return (
-    <View style={[s.inputWrap, style as any]}>
-      {label && <Text style={s.inputLabel}>{label}</Text>}
-      <TextInput placeholderTextColor="#B9A994" style={s.input} {...p} onFocus={(e) => { notifyInputFocus(); p.onFocus?.(e); }} />
-    </View>
+    <>
+      <View style={[s.inputWrap, error ? s.inputErr : null, style as any]}>
+        {label && <Text style={[s.inputLabel, error ? { color: C.red } : null]}>{label}</Text>}
+        <TextInput placeholderTextColor="#B9A994" style={s.input} {...p} onFocus={(e) => { notifyInputFocus(); p.onFocus?.(e); }} />
+      </View>
+      {error ? <Text style={s.errHint}>{error}</Text> : null}
+    </>
   );
 }
 
 /** Label/value box that opens a picker (used for Assign to, Due, Priority…) */
-export function Select({ label, value, onPress }: { label: string; value: string; onPress: () => void }) {
+export function Select({ label, value, onPress, error }: { label: string; value: string; onPress: () => void; error?: string | null }) {
   return (
-    <Pressable onPress={onPress} style={s.inputWrap}>
-      <Text style={s.inputLabel}>{label}</Text>
+    <Pressable onPress={onPress} style={[s.inputWrap, error ? s.inputErr : null]}>
+      <Text style={[s.inputLabel, error ? { color: C.red } : null]}>{label}{error ? ` — ${error}` : ''}</Text>
       <Text style={[s.input, { paddingVertical: 2 }]}>{value}</Text>
     </Pressable>
   );
@@ -181,7 +184,7 @@ export function TaskCard({ t }: { t: any }) {
       </Row>
       <Row style={{ justifyContent: 'space-between', marginTop: 8 }}>
         <T muted>
-          {t.repeat_frequency ? `${tr(t.repeat_frequency)} · ` : '⏱ '}{dueLabel(t.due_at, tr)} · <Text style={{ color: t.priority === 'high' ? C.red : t.priority === 'medium' ? C.amber : C.green }}>{tr(t.priority)}</Text>
+          {t.repeat_frequency ? `${tr(t.repeat_frequency)} · ` : '⏱ '}{dueLabel(t.due_at, tr)} · <Text style={{ color: t.priority === 'high' || t.priority === 'urgent' ? C.red : t.priority === 'medium' ? C.amber : C.green, fontWeight: t.priority === 'urgent' ? '700' : '400' }}>{t.priority === 'urgent' ? '⚡ ' : ''}{tr(t.priority)}</Text>
           {t.checklist_total ? `  ·  ☑ ${t.checklist_done}/${t.checklist_total}` : ''}
         </T>
         <Avatar initials={t.assignee_initials} size={24} />
@@ -191,6 +194,8 @@ export function TaskCard({ t }: { t: any }) {
 }
 
 export const s = StyleSheet.create({
+  inputErr: { borderColor: C.red, backgroundColor: '#FFF6F5' },
+  errHint: { color: C.red, fontSize: 12, marginTop: -8, marginBottom: 10, marginLeft: 4 },
   screen: { flex: 1, backgroundColor: C.bg },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 10 },
   back: { fontSize: 32, color: C.text, marginTop: -6, paddingRight: 4 },

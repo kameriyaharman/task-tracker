@@ -13,7 +13,7 @@ final class TaskController extends Controller
     public static function fetchList(int $cid, string $where, array $params, string $order = 't.due_at', int $limit = 100, int $offset = 0): array
     {
         $rows = Db::all(
-            "SELECT t.*, ua.name AS assignee_name, ub.name AS assigner_name, d.name AS department_name,
+            "SELECT t.*, ua.name AS assignee_name, ua.mobile AS assignee_mobile, ub.name AS assigner_name, d.name AS department_name,
                     (SELECT COUNT(*) FROM task_checklist c WHERE c.task_id = t.id) AS checklist_total,
                     (SELECT COUNT(*) FROM task_checklist c WHERE c.task_id = t.id AND c.is_done = 1) AS checklist_done,
                     r.frequency AS repeat_frequency
@@ -50,7 +50,8 @@ final class TaskController extends Controller
         if (!$rows) throw HttpError::notFound('Task not found');
         $t = $rows[0];
         $can = $t['assigned_to'] === $this->uid() || $t['assigned_by'] === $this->uid()
-            || ($this->isManager() && in_array($t['assigned_to'], Auth::teamIds($this->user), true));
+            || ($this->isManager() && in_array($t['assigned_to'], Auth::teamIds($this->user), true))
+            || Db::value('SELECT 1 FROM task_checklist WHERE task_id = ? AND assigned_to = ?', [$t['id'], $this->uid()]);
         if (!$can) throw HttpError::forbidden();
         return $t;
     }
@@ -80,7 +81,9 @@ final class TaskController extends Controller
             case 'team':
                 $ids = Auth::teamIds($this->user);
                 $where[] = 't.assigned_to IN ' . Db::in($ids); $p = array_merge($p, $ids); break;
-            default: $where[] = 't.assigned_to = ?'; $p[] = $this->uid();
+            default:
+                $where[] = '(t.assigned_to = ? OR EXISTS (SELECT 1 FROM task_checklist cl WHERE cl.task_id = t.id AND cl.assigned_to = ?))';
+                $p[] = $this->uid(); $p[] = $this->uid();
         }
 
         $open = "t.status NOT IN ('done','cancelled')";
@@ -92,7 +95,11 @@ final class TaskController extends Controller
             case 'open': $where[] = $open; break;
             case 'recurring': $where[] = 't.recurring_rule_id IS NOT NULL'; break;
         }
-        if (!empty($q['q'])) { $where[] = 't.title LIKE ?'; $p[] = '%' . $q['q'] . '%'; }
+        if (!empty($q['q'])) {
+            $where[] = '(t.title LIKE ? OR t.description LIKE ? OR ua.name LIKE ? OR EXISTS (SELECT 1 FROM task_checklist cq WHERE cq.task_id = t.id AND cq.label LIKE ?))';
+            $like = '%' . $q['q'] . '%'; array_push($p, $like, $like, $like, $like);
+        }
+        if (!empty($q['priority'])) { $where[] = 't.priority = ?'; $p[] = $q['priority']; }
         if (!empty($q['department_id'])) { $where[] = 't.department_id = ?'; $p[] = (int) $q['department_id']; }
         if (!empty($q['assigned_to'])) { $where[] = 't.assigned_to = ?'; $p[] = (int) $q['assigned_to']; }
         if (!empty($q['goal_id'])) { $where[] = 't.goal_id = ?'; $p[] = (int) $q['goal_id']; }
@@ -107,7 +114,7 @@ final class TaskController extends Controller
 
         // tab counters for the chips (Today 5 · Overdue 2 …) within the chosen scope
         $scopeWhere = $where[0];
-        $scopeParams = array_slice($p, 0, $scope === 'team' ? count(Auth::teamIds($this->user)) : 1);
+        $scopeParams = array_slice($p, 0, $scope === 'team' ? count(Auth::teamIds($this->user)) : ($scope === 'by_me' ? 1 : 2));
         $c = Db::one("SELECT COUNT(*) AS all_,
                 SUM(DATE(t.due_at) = CURDATE()) AS today,
                 SUM($open AND t.due_at < NOW()) AS overdue,
@@ -126,7 +133,7 @@ final class TaskController extends Controller
     public function show(): array
     {
         $t = $this->load($this->param('id'));
-        $t['checklist'] = Db::all('SELECT id, label, is_done FROM task_checklist WHERE task_id = ? ORDER BY sort_order, id', [$t['id']]);
+        $t['checklist'] = self::checklistFor($t, $this->uid(), $this->canManage($t));
         $t['attachments'] = Db::all("SELECT id, entity_type, kind, file_name, mime, size_bytes, duration_sec, created_at FROM attachments
                                       WHERE company_id = ? AND entity_type IN ('task','task_proof') AND entity_id = ?", [$this->cid, $t['id']]);
         $t['comments'] = Db::all('SELECT c.id, c.body, c.created_at, u.id AS user_id, u.name AS user_name
@@ -145,50 +152,93 @@ final class TaskController extends Controller
      */
     public function store(): array
     {
-        $in = $this->req->require(['title', 'assigned_to']);
-        $assignee = (int) $in['assigned_to'];
-        $this->assertSameCompanyUser($assignee);
-        if ($assignee !== $this->uid() && !$this->isManager() && !\App\Core\Config::get('allow_peer_delegation', true)) {
-            throw HttpError::forbidden('Only managers can assign to others');
+        $in = $this->req->require(['title']);
+        $assignees = $this->assigneeInput();
+        if (!$assignees) throw HttpError::badRequest('Choose who will do this task (Assign to)');
+        foreach ($assignees as $a) {
+            $this->assertSameCompanyUser($a);
+            if ($a !== $this->uid() && !$this->isManager() && !\App\Core\Config::get('allow_peer_delegation', true)) {
+                throw HttpError::forbidden('Only managers can assign to others');
+            }
         }
+        if (mb_strlen(trim((string) $in['title'])) < 2) throw HttpError::badRequest('Write the task');
 
-        $data = $this->req->only(self::EDITABLE);
-        $data = array_merge($data, [
-            'company_id' => $this->cid,
-            'title' => mb_substr(trim($in['title']), 0, 200),
-            'assigned_to' => $assignee,
-            'assigned_by' => $this->uid(),
-            'source' => in_array($this->req->input('source'), ['voice', 'ai', 'manual'], true) ? $this->req->input('source') : 'manual',
-        ]);
-        if (empty($data['department_id'])) {
-            $data['department_id'] = Db::value('SELECT department_id FROM users WHERE id = ?', [$assignee]);
+        $base = $this->req->only(self::EDITABLE);
+        if (empty($base['due_at'])) {
+            // No due time given → default window (company setting, 4 hours by default)
+            $hours = (int) (Db::value("SELECT JSON_UNQUOTE(JSON_EXTRACT(erp_settings, '$.default_due_hours')) FROM companies WHERE id = ?", [$this->cid]) ?: 4);
+            $base['due_at'] = date('Y-m-d H:i:00', time() + $hours * 3600);
         }
-        $data['send_whatsapp'] = !empty($data['send_whatsapp']) ? 1 : 0;
-        $data = self::cleanTaskData($data);
-
         $repeat = $this->req->input('repeat');
         if (is_string($repeat)) $repeat = json_decode($repeat, true);
-        if (is_array($repeat) && !empty($repeat['frequency']) && $repeat['frequency'] !== 'none') {
-            // A repeating task is stored as a rule; the first occurrence is created right away.
-            $ruleId = RecurringController::createRule($this->cid, $this->uid(), $data, $repeat, $this->checklistInput());
-            $data['recurring_rule_id'] = $ruleId;
-            $data['source'] = 'recurring';
+        $checklist = $this->checklistInput();
+
+        $ids = [];
+        foreach ($assignees as $assignee) {
+            $data = array_merge($base, [
+                'company_id' => $this->cid,
+                'title' => mb_substr(trim($in['title']), 0, 200),
+                'assigned_to' => $assignee,
+                'assigned_by' => $this->uid(),
+                'source' => in_array($this->req->input('source'), ['voice', 'ai', 'manual'], true) ? $this->req->input('source') : 'manual',
+            ]);
+            unset($data['id']);
+            if (empty($data['department_id']) || count($assignees) > 1) {
+                $data['department_id'] = Db::value('SELECT department_id FROM users WHERE id = ?', [$assignee]) ?: ($base['department_id'] ?? null);
+            }
+            $data['send_whatsapp'] = !empty($data['send_whatsapp']) ? 1 : 0;
+            $data = self::cleanTaskData($data);
+
+            if (is_array($repeat) && !empty($repeat['frequency']) && $repeat['frequency'] !== 'none') {
+                // A repeating task is stored as a rule; the first occurrence is created right away.
+                $ruleId = RecurringController::createRule($this->cid, $this->uid(), $data, $repeat, $checklist);
+                $data['recurring_rule_id'] = $ruleId;
+                $data['source'] = 'recurring';
+                $day = date('Y-m-d', strtotime($data['due_at']));
+                if (!empty($repeat['starts_on']) && $repeat['starts_on'] > $day) $day = $repeat['starts_on'];
+                $time = !empty($repeat['due_time']) ? date('H:i:s', strtotime($repeat['due_time'])) : date('H:i:s', strtotime($data['due_at']));
+                $data['due_at'] = "$day $time";
+            }
+
+            $id = Db::tx(function () use ($data, $checklist) {
+                $id = Db::insert('tasks', $data);
+                self::insertChecklist($id, $checklist);
+                return $id;
+            });
+            $ids[] = $id;
         }
 
-        $id = Db::tx(function () use ($data) {
-            $id = Db::insert('tasks', $data);
-            self::insertChecklist($id, $this->checklistInput());
-            return $id;
-        });
-
-        foreach (Upload::list($this->req->files, 'attachments') as $f) Upload::save($f, $this->cid, $this->uid(), 'task', $id);
+        // Files are stored once and linked to every copy of the task
+        $saved = [];
+        foreach (Upload::list($this->req->files, 'attachments') as $f) $saved[] = Upload::save($f, $this->cid, $this->uid(), 'task', $ids[0]);
         if (!empty($this->req->files['voice_note'])) {
-            Upload::save($this->req->files['voice_note'], $this->cid, $this->uid(), 'task', $id, 'voice', $this->req->int('voice_duration'));
+            $saved[] = Upload::save($this->req->files['voice_note'], $this->cid, $this->uid(), 'task', $ids[0], 'voice', $this->req->int('voice_duration'));
+        }
+        foreach (array_slice($ids, 1) as $other) {
+            foreach ($saved as $a) {
+                $row = array_intersect_key($a, array_flip(['company_id', 'entity_type', 'kind', 'file_name', 'path', 'mime', 'size_bytes', 'duration_sec', 'uploaded_by']));
+                Db::insert('attachments', $row + ['entity_id' => $other]);
+            }
         }
 
-        $this->log($id, 'created');
-        self::announceAssignment($id, $this->user['name']);
-        return $this->show2($id);
+        foreach ($ids as $id) {
+            $this->log($id, 'created');
+            self::announceAssignment($id, $this->user['name']);
+            self::notifyChecklistOwners($id, $this->user['name']);
+        }
+        $out = $this->show2($ids[0]);
+        $out['created_ids'] = $ids;
+        return $out;
+    }
+
+    /** assigned_to (one id) or assignees ([ids] / "1,2,3") */
+    private function assigneeInput(): array
+    {
+        $a = $this->req->input('assignees');
+        if (is_string($a)) $a = json_decode($a, true) ?? explode(',', $a);
+        $list = is_array($a) ? $a : [];
+        if (!$list && $this->req->input('assigned_to')) $list = explode(',', (string) $this->req->input('assigned_to'));
+        return array_values(array_unique(array_filter(array_map('intval', $list))));
     }
 
     private function show2(int $id): array { $this->req->params['id'] = (string) $id; return $this->show(); }
@@ -202,24 +252,67 @@ final class TaskController extends Controller
         if ($t['send_whatsapp']) WhatsApp::taskAssigned($t, $assignee, $byName);
     }
 
+    /** checklist: ["text", …] or [{label, assigned_to}, …] */
     private function checklistInput(): array
     {
         $c = $this->req->input('checklist', []);
         if (is_string($c)) $c = json_decode($c, true) ?: array_filter(array_map('trim', explode("\n", $c)));
-        return array_values(array_filter(array_map(fn($x) => is_array($x) ? ($x['label'] ?? '') : (string) $x, (array) $c)));
+        $out = [];
+        foreach ((array) $c as $x) {
+            $label = trim(is_array($x) ? (string) ($x['label'] ?? '') : (string) $x);
+            if ($label === '') continue;
+            $owner = is_array($x) && !empty($x['assigned_to']) ? (int) $x['assigned_to'] : null;
+            if ($owner) $this->assertSameCompanyUser($owner);
+            $out[] = $owner ? ['label' => $label, 'assigned_to' => $owner] : $label;
+        }
+        return $out;
     }
 
-    public static function insertChecklist(int $taskId, array $labels): void
+    public static function insertChecklist(int $taskId, array $items): void
     {
-        foreach ($labels as $i => $label) {
-            if (trim($label) === '') continue;
-            Db::insert('task_checklist', ['task_id' => $taskId, 'label' => mb_substr(trim($label), 0, 200), 'sort_order' => $i]);
+        foreach (array_values($items) as $i => $x) {
+            $label = trim(is_array($x) ? (string) ($x['label'] ?? '') : (string) $x);
+            if ($label === '') continue;
+            Db::insert('task_checklist', ['task_id' => $taskId, 'label' => mb_substr($label, 0, 200), 'sort_order' => $i,
+                'assigned_to' => is_array($x) && !empty($x['assigned_to']) ? (int) $x['assigned_to'] : null]);
+        }
+    }
+
+    /** Checklist rows with owner names and whether the current user may tick each one (steps go in order). */
+    public static function checklistFor(array $t, int $uid, bool $canManage): array
+    {
+        $rows = Db::all('SELECT c.id, c.label, c.is_done, c.assigned_to, c.done_at, ua.name AS assignee_name, ud.name AS done_by_name
+                           FROM task_checklist c LEFT JOIN users ua ON ua.id = c.assigned_to LEFT JOIN users ud ON ud.id = c.done_by
+                          WHERE c.task_id = ? ORDER BY c.sort_order, c.id', [$t['id']]);
+        $prevDone = true;
+        foreach ($rows as &$r) {
+            $r['is_done'] = (int) $r['is_done'];
+            $r['assigned_to'] = $r['assigned_to'] ? (int) $r['assigned_to'] : null;
+            $owner = $r['assigned_to'] ?? (int) $t['assigned_to'];
+            $open = !in_array($t['status'], ['done', 'cancelled'], true);
+            $r['can_tick'] = $open && ($owner === $uid || (int) $t['assigned_to'] === $uid || $canManage) && ($r['is_done'] || $prevDone);
+            $r['locked'] = !$r['is_done'] && !$prevDone;
+            $prevDone = $prevDone && $r['is_done'];
+        }
+        return $rows;
+    }
+
+    /** Tell people who own a checklist step (other than the main assignee) that the task includes them. */
+    public static function notifyChecklistOwners(int $taskId, string $byName): void
+    {
+        $t = Db::one('SELECT * FROM tasks WHERE id = ?', [$taskId]);
+        $first = Db::one('SELECT * FROM task_checklist WHERE task_id = ? AND is_done = 0 ORDER BY sort_order, id LIMIT 1', [$taskId]);
+        $owners = Db::all('SELECT DISTINCT assigned_to FROM task_checklist WHERE task_id = ? AND assigned_to IS NOT NULL AND assigned_to <> ?', [$taskId, $t['assigned_to']]);
+        foreach ($owners as $o) {
+            $isNext = $first && (int) $first['assigned_to'] === (int) $o['assigned_to'];
+            Notifier::notify((int) $t['company_id'], (int) $o['assigned_to'], 'task_assigned',
+                $isNext ? 'Your step is ready' : "$byName added you to a task", $t['title'], 'task', $taskId);
         }
     }
 
     public static function cleanTaskData(array $d): array
     {
-        if (isset($d['priority']) && !in_array($d['priority'], ['low', 'medium', 'high'], true)) $d['priority'] = 'medium';
+        if (isset($d['priority']) && !in_array($d['priority'], ['low', 'medium', 'high', 'urgent'], true)) $d['priority'] = 'medium';
         if (array_key_exists('due_at', $d)) $d['due_at'] = $d['due_at'] ? date('Y-m-d H:i:s', strtotime($d['due_at'])) : null;
         foreach (['department_id', 'goal_id', 'campaign_id', 'remind_before_min'] as $k) {
             if (array_key_exists($k, $d)) $d[$k] = ($d[$k] === '' || $d[$k] === null) ? null : (int) $d[$k];
@@ -287,6 +380,11 @@ final class TaskController extends Controller
         $lat = $this->req->input('lat');
         $lng = $this->req->input('lng');
 
+        if ($t['status'] === 'done') throw HttpError::badRequest('This task is already complete');
+        $openSteps = (int) Db::value('SELECT COUNT(*) FROM task_checklist WHERE task_id = ? AND is_done = 0', [$t['id']]);
+        if ($openSteps && !$this->canManage($t)) throw HttpError::badRequest("Finish the checklist first ($openSteps step" . ($openSteps > 1 ? 's' : '') . ' left)');
+        $link = trim((string) $this->req->input('link'));
+        if ($link !== '' && !preg_match('~^https?://\S+\.\S+~i', $link)) throw HttpError::badRequest('Proof link must start with http:// or https://');
         if (in_array('photo', $proof, true) && !$photos) throw HttpError::badRequest('Photo proof is required for this task');
         if (in_array('file', $proof, true) && !$files) throw HttpError::badRequest('File proof is required for this task');
         if (in_array('location', $proof, true) && ($lat === null || $lng === null)) throw HttpError::badRequest('Location is required for this task');
@@ -319,12 +417,35 @@ final class TaskController extends Controller
         return $this->show();
     }
 
-    /** PATCH /tasks/{id}/checklist/{itemId} {is_done} */
+    /** PATCH /tasks/{id}/checklist/{itemId} {is_done} — steps are done in order, each by its owner */
     public function toggleChecklist(): array
     {
         $t = $this->load($this->param('id'));
-        Db::exec('UPDATE task_checklist SET is_done = ? WHERE id = ? AND task_id = ?', [$this->req->input('is_done') ? 1 : 0, $this->param('itemId'), $t['id']]);
+        $items = self::checklistFor($t, $this->uid(), $this->canManage($t));
+        $item = null;
+        foreach ($items as $i) if ((int) $i['id'] === (int) $this->param('itemId')) $item = $i;
+        if (!$item) throw HttpError::notFound('Checklist item not found');
+        $done = $this->req->input('is_done') ? 1 : 0;
+        if ($done && $item['locked']) throw HttpError::badRequest('Finish the earlier checklist steps first');
+        if (!$item['can_tick']) throw HttpError::forbidden(($item['assignee_name'] ?? 'The assigned person') . ' has to tick this step');
+
+        Db::exec('UPDATE task_checklist SET is_done = ?, done_by = ?, done_at = ? WHERE id = ? AND task_id = ?',
+            [$done, $done ? $this->uid() : null, $done ? date('Y-m-d H:i:s') : null, $item['id'], $t['id']]);
+        $this->log($t['id'], ($done ? 'step done: ' : 'step undone: ') . mb_substr($item['label'], 0, 60));
         if ($t['status'] === 'not_started') self::setStatus($t, 'in_progress', $this->uid());
+
+        if ($done) {
+            $next = Db::one('SELECT * FROM task_checklist WHERE task_id = ? AND is_done = 0 ORDER BY sort_order, id LIMIT 1', [$t['id']]);
+            if ($next) {
+                $owner = (int) ($next['assigned_to'] ?: $t['assigned_to']);
+                if ($owner !== $this->uid()) Notifier::notify($this->cid, $owner, 'task_assigned', 'Your step is ready', "{$t['title']} → {$next['label']}", 'task', $t['id']);
+            } elseif (!$t['proof_type']) {
+                // last step ticked and no proof needed → the task is complete
+                self::setStatus($t, 'done', $this->uid(), ['completion_remarks' => 'All checklist steps done']);
+            } elseif ((int) $t['assigned_to'] !== $this->uid()) {
+                Notifier::notify($this->cid, (int) $t['assigned_to'], 'task_due', 'All steps done — add proof', "Complete \"{$t['title']}\" with {$t['proof_type']} proof", 'task', $t['id']);
+            }
+        }
         return $this->show();
     }
 
@@ -334,7 +455,9 @@ final class TaskController extends Controller
         $t = $this->load($this->param('id'));
         $label = $this->req->require(['label'])['label'];
         $max = (int) Db::value('SELECT COALESCE(MAX(sort_order),0) FROM task_checklist WHERE task_id = ?', [$t['id']]);
-        Db::insert('task_checklist', ['task_id' => $t['id'], 'label' => mb_substr($label, 0, 200), 'sort_order' => $max + 1]);
+        $owner = $this->req->int('assigned_to') ?: null;
+        if ($owner) $this->assertSameCompanyUser($owner);
+        Db::insert('task_checklist', ['task_id' => $t['id'], 'label' => mb_substr($label, 0, 200), 'sort_order' => $max + 1, 'assigned_to' => $owner]);
         return $this->show();
     }
 

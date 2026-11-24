@@ -11,7 +11,8 @@ final class RecurringEngine
     public static function firesOn(array $r, int $ts): bool
     {
         $d = date('Y-m-d', $ts);
-        if ($r['ends_on'] && $d > $r['ends_on']) return false;
+        if (!empty($r['ends_on']) && $d > $r['ends_on']) return false;
+        if (!empty($r['starts_on']) && $d < $r['starts_on']) return false;
         switch ($r['frequency']) {
             case 'daily':
                 $wd = $r['weekdays'] ? array_map('intval', explode(',', $r['weekdays'])) : [1, 2, 3, 4, 5, 6];

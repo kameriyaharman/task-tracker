@@ -99,7 +99,7 @@ export function TaskStatus({ t }: { t: { display_status: string; overdue_minutes
   return t.display_status === 'overdue' ? <Badge s="overdue">Overdue {overdueLabel(t.overdue_minutes)}</Badge> : <Badge s={t.display_status} />;
 }
 
-export const Pri = ({ p }: { p: string }) => <span className={`pri ${p}`}>{p[0].toUpperCase() + p.slice(1)}</span>;
+export const Pri = ({ p }: { p: string }) => <span className={`pri ${p}`}>{p === 'urgent' ? '⚡ ' : ''}{p[0].toUpperCase() + p.slice(1)}</span>;
 
 export function Drawer({ title, onClose, children, modal, wide }: { title: ReactNode; onClose: () => void; children: ReactNode; modal?: boolean; wide?: boolean }) {
   return (

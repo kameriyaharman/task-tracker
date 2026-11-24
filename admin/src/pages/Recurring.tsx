@@ -54,7 +54,7 @@ export default function Recurring() {
 
 function RecurringForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const people = useApi<any[]>('/employees');
-  const [f, setF] = useState({ title: '', frequency: 'daily', weekdays: [1, 2, 3, 4, 5, 6], month_day: 1, interval_days: 2, due_time: '10:00', ends_on: '', priority: 'medium', proof: [] as string[], rotation: [] as number[] });
+  const [f, setF] = useState({ title: '', frequency: 'daily', weekdays: [1, 2, 3, 4, 5, 6], month_day: 1, interval_days: 2, due_time: '10:00', start_time: '', starts_on: '', ends_on: '', priority: 'medium', proof: [] as string[], rotation: [] as number[] });
   const [checklist, setChecklist] = useState(['']);
   const [preview, setPreview] = useState<string[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -68,7 +68,7 @@ function RecurringForm({ onClose, onSaved }: { onClose: () => void; onSaved: () 
 
   const save = async () => {
     try {
-      await api('/recurring', { body: { ...f, proof_type: f.proof.join(','), ends_on: f.ends_on || null, assigned_to: f.rotation[0], rotation: f.rotation.length > 1 ? f.rotation : [], checklist: checklist.filter(Boolean) } });
+      await api('/recurring', { body: { ...f, proof_type: f.proof.join(','), ends_on: f.ends_on || null, starts_on: f.starts_on || null, start_time: f.start_time || null, assigned_to: f.rotation[0], rotation: f.rotation.length > 1 ? f.rotation : [], checklist: checklist.filter(Boolean) } });
       onSaved();
     } catch (e) { setErr((e as Error).message); }
   };
@@ -78,19 +78,22 @@ function RecurringForm({ onClose, onSaved }: { onClose: () => void; onSaved: () 
       <ErrorBox msg={err} />
       <Field label="Task"><input value={f.title} onChange={(e) => set('title', e.target.value)} placeholder="Daily machine maintenance checklist" /></Field>
       <div className="chips">
-        {['daily', 'weekly', 'monthly', 'custom'].map((x) => <span key={x} className={`chip ${f.frequency === x ? 'on' : ''}`} onClick={() => upd('frequency', x)}>{x[0].toUpperCase() + x.slice(1)}</span>)}
+        {[['daily', 'Daily'], ['weekly', 'Weekly'], ['monthly', 'Monthly (date)'], ['custom', 'Every N days']].map(([x, l]) => <span key={x} className={`chip ${f.frequency === x ? 'on' : ''}`} onClick={() => upd('frequency', x)}>{l}</span>)}
       </div>
       {(f.frequency === 'daily' || f.frequency === 'weekly') && (
         <div className="field"><span>On</span><div className="chips">
           {days.map((d, i) => <span key={d} className={`chip ${f.weekdays.includes(i + 1) ? 'on' : ''}`} onClick={() => upd('weekdays', f.weekdays.includes(i + 1) ? f.weekdays.filter((x) => x !== i + 1) : [...f.weekdays, i + 1].sort())}>{d}</span>)}
         </div></div>
       )}
-      {f.frequency === 'monthly' && <Field label="Day of month"><input type="number" min={1} max={31} value={f.month_day} onChange={(e) => upd('month_day', +e.target.value)} /></Field>}
+      {f.frequency === 'monthly' && <Field label="Every month on date (rent on 1st, vehicle service on 15th…)"><select value={f.month_day} onChange={(e) => upd('month_day', +e.target.value)}>{Array.from({ length: 31 }, (_, i) => <option key={i} value={i + 1}>{i + 1}</option>)}</select></Field>}
       {f.frequency === 'custom' && <Field label="Every N days"><input type="number" min={1} value={f.interval_days} onChange={(e) => upd('interval_days', +e.target.value)} /></Field>}
       {preview.length > 0 && <p className="muted">Next: {preview.map(dateOf).join(' · ')}</p>}
       <div className="grid g2">
-        <Field label="Time"><input type="time" value={f.due_time} onChange={(e) => set('due_time', e.target.value)} /></Field>
-        <Field label="Ends"><input type="date" value={f.ends_on} onChange={(e) => set('ends_on', e.target.value)} /></Field>
+        <Field label="Time — from"><input type="time" value={f.start_time} onChange={(e) => set('start_time', e.target.value)} /></Field>
+        <Field label="Time — to (due)"><input type="time" value={f.due_time} onChange={(e) => set('due_time', e.target.value)} /></Field>
+        <Field label="Start date"><input type="date" value={f.starts_on} onChange={(e) => set('starts_on', e.target.value)} /></Field>
+        <Field label="End date (optional)"><input type="date" value={f.ends_on} onChange={(e) => set('ends_on', e.target.value)} /></Field>
+        <Field label="Priority"><select value={f.priority} onChange={(e) => set('priority', e.target.value)}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></Field>
       </div>
       <Field label="Assign / rotate between (pick 2+ to alternate)">
         <div className="tools" style={{ maxHeight: 140, overflowY: 'auto' }}>
@@ -106,6 +109,7 @@ function RecurringForm({ onClose, onSaved }: { onClose: () => void; onSaved: () 
       <div className="field"><span>Proof</span><div className="tools">
         {['photo', 'file', 'location', 'link'].map((p) => <label key={p} className={f.proof.includes(p) ? 'on' : ''} onClick={() => set('proof', f.proof.includes(p) ? f.proof.filter((x) => x !== p) : [...f.proof, p])}>{p}</label>)}
       </div></div>
+      {(!f.title || !f.rotation.length) && <p className="field-err">{!f.title ? 'Write the task. ' : ''}{!f.rotation.length ? 'Pick who does it.' : ''}</p>}
       <button className="btn" style={{ width: '100%', justifyContent: 'center' }} disabled={!f.title || !f.rotation.length} onClick={save}>Save repeat</button>
     </Drawer>
   );
