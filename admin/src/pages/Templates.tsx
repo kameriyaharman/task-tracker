@@ -7,23 +7,13 @@ import { Drawer, Empty, ErrorBox, Field, Icon, Loading, Pri } from '../ui';
 /** Standard tasks with a short code — pick one in "New task" to fill everything in one tap. */
 export default function Templates() {
   const { data, error, reload } = useApi<any[]>('/task-templates');
-  const defaults = useApi<{ default_due_hours: number }>('/task-defaults');
   const [edit, setEdit] = useState<any | null>(null);
-  const [hrs, setHrs] = useState<string>('');
 
   return (
     <>
-      <Topbar title="Task templates" action={<button className="btn" onClick={() => setEdit({})}><Icon name="plus" /> New template</button>} />
+      <Topbar title="Task rules & templates" action={<button className="btn" onClick={() => setEdit({})}><Icon name="plus" /> New template</button>} />
       <ErrorBox msg={error} />
-      <div className="card" style={{ marginBottom: 14 }}>
-        <div className="row" style={{ flexWrap: 'wrap' }}>
-          <span>When no due time is chosen, a new task is due in</span>
-          <select className="input" style={{ width: 110 }} value={hrs || String(defaults.data?.default_due_hours ?? 4)}
-            onChange={(e) => { setHrs(e.target.value); api('/task-defaults', { method: 'PATCH', body: { default_due_hours: +e.target.value } }).then(defaults.reload); }}>
-            {[2, 4, 6, 8, 12, 24, 48].map((h) => <option key={h} value={h}>{h} hours</option>)}
-          </select>
-        </div>
-      </div>
+      <TaskRulesCard />
       {!data ? <Loading /> : (
         <div className="card" style={{ padding: 6 }}>
           {data.length ? (
@@ -83,5 +73,55 @@ function TemplateForm({ t, onClose, onSaved }: { t: any; onClose: () => void; on
       </div></div>
       <button className="btn" style={{ width: '100%', justifyContent: 'center' }} onClick={save}>Save template</button>
     </Drawer>
+  );
+}
+
+/** Default due window, approval of staff requests, escalation chain (level 1 → 4). */
+function TaskRulesCard() {
+  const r = useApi<any>('/task-defaults');
+  const people = useApi<any[]>('/employees');
+  const [lv, setLv] = useState<any[] | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  if (!r.data) return <Loading />;
+  const levels = lv ?? r.data.escalation;
+  const save = async (body: any) => {
+    setErr(null);
+    try { await api('/task-defaults', { method: 'PATCH', body }); r.reload(); setMsg('Saved'); setTimeout(() => setMsg(null), 1500); } catch (e) { setErr((e as Error).message); }
+  };
+  const targets = Object.entries(r.data.targets as Record<string, string>);
+  return (
+    <div className="card" style={{ marginBottom: 14 }}>
+      <ErrorBox msg={err} />
+      <div className="row" style={{ flexWrap: 'wrap', marginBottom: 10 }}>
+        <span>When no due time is chosen, a task is due in</span>
+        <select className="input" style={{ width: 110 }} value={r.data.default_due_hours} onChange={(e) => save({ default_due_hours: +e.target.value })}>
+          {[2, 4, 6, 8, 12, 24, 48].map((h) => <option key={h} value={h}>{h} hours</option>)}
+        </select>
+        {msg && <span className="ok-text">✓ {msg}</span>}
+      </div>
+      <label className="switch-row">
+        <input type="checkbox" checked={r.data.task_approval} onChange={(e) => save({ task_approval: e.target.checked })} />
+        <span><b>Staff task requests need approval</b> — anyone can create a task for a colleague; it reaches them after their manager (or department head / boss, or that person's deputy) approves.</span>
+      </label>
+      <h3 style={{ marginTop: 14 }}>Escalation — if a task is still open after its due time</h3>
+      {levels.map((l: any, i: number) => (
+        <div key={i} className="row" style={{ marginBottom: 6, flexWrap: 'wrap' }}>
+          <b style={{ width: 62 }}>Level {i + 1}</b>
+          <input className="input" type="number" min={1} style={{ width: 80 }} value={l.after_hours} onChange={(e) => setLv(levels.map((x: any, j: number) => (j === i ? { ...x, after_hours: +e.target.value } : x)))} />
+          <span>hours late → tell</span>
+          <select className="input" style={{ width: 200 }} value={l.to} onChange={(e) => setLv(levels.map((x: any, j: number) => (j === i ? { ...x, to: e.target.value } : x)))}>
+            {targets.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            {(people.data ?? []).map((p) => <option key={p.id} value={`user:${p.id}`}>{p.name}</option>)}
+          </select>
+          <button className="link" onClick={() => setLv(levels.filter((_: any, j: number) => j !== i))}>✕</button>
+        </div>
+      ))}
+      <div className="row">
+        {levels.length < 4 && <button className="btn ghost sm" onClick={() => setLv([...levels, { after_hours: (levels[levels.length - 1]?.after_hours ?? 0) + 24, to: 'owner' }])}>+ Add level</button>}
+        {lv && <button className="btn sm" onClick={() => save({ escalation: lv }).then(() => setLv(null))}>Save escalation</button>}
+      </div>
+      <p className="muted" style={{ marginBottom: 0 }}>Each level gets a notification and can open the task; the task shows "Escalated · level N".</p>
+    </div>
   );
 }

@@ -80,6 +80,7 @@ export default function TaskForm({ onClose, onSaved, task }: { onClose: () => vo
   const [steps, setSteps] = useState<Step[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const [saveTpl, setSaveTpl] = useState(false);
+  const [emergency, setEmergency] = useState(false);
   const [tplCode, setTplCode] = useState('');
   const voice = useRecorder();
   const [err, setErr] = useState<string | null>(null);
@@ -146,11 +147,13 @@ export default function TaskForm({ onClose, onSaved, task }: { onClose: () => vo
         const fd = new FormData();
         Object.entries(body).forEach(([k, v]) => v !== null && v !== undefined && fd.append(k, typeof v === 'boolean' ? (v ? '1' : '0') : String(v)));
         fd.append('assignees', JSON.stringify(assignees.map(Number)));
+        if (emergency) fd.append('is_emergency', '1');
         fd.append('checklist', JSON.stringify(checklist));
         if (repeat.frequency !== 'none') fd.append('repeat', JSON.stringify({ ...repeat, starts_on: repeat.starts_on || null, ends_on: repeat.ends_on || null, start_time: repeat.start_time || null }));
         files.forEach((x) => fd.append('attachments[]', x));
         if (voice.blob) { fd.append('voice_note', voice.blob); fd.append('voice_duration', String(voice.secs)); }
-        await api('/tasks', { body: fd });
+        const r = await api<any>('/tasks', { body: fd });
+        if (r.needs_approval) alert(`Sent to ${r.approver_name} for approval. The task reaches ${assignees.length > 1 ? 'them' : nameOf(assignees[0])} once approved.`);
         if (saveTpl) {
           await api('/task-templates', { body: { code: tplCode, title: body.title, description: body.description, department_id: body.department_id, priority: body.priority, proof_type: body.proof_type, checklist } }).catch(() => {});
         }
@@ -246,6 +249,11 @@ export default function TaskForm({ onClose, onSaved, task }: { onClose: () => vo
             {assignees.map((id) => <span key={id} className="chip on" onClick={() => togglePerson(id)}>{nameOf(id)} ✕</span>)}
           </div>
         )}
+        {!task && f.department_id && visiblePeople.length > 1 && (
+          <div className="row" style={{ marginBottom: 6, flexWrap: 'wrap' }}>
+            <button type="button" className="btn ghost sm" onClick={() => setAssignees(Array.from(new Set([...assignees, ...visiblePeople.map((p) => String(p.id))])))}>Select everyone in this department</button>
+          </div>
+        )}
         <div className="people-pick">
           {visiblePeople.map((p) => (
             <label key={p.id} className={assignees.includes(String(p.id)) ? 'on' : ''}>
@@ -326,6 +334,12 @@ export default function TaskForm({ onClose, onSaved, task }: { onClose: () => vo
         </div>
       </div>
 
+      {!task && (
+        <label className={`switch-row${emergency ? ' emergency' : ''}`}>
+          <input type="checkbox" checked={emergency} onChange={(e) => { setEmergency(e.target.checked); if (e.target.checked) { set('priority', 'urgent'); if (f.department_id) setAssignees(visiblePeople.map((p) => String(p.id))); } }} />
+          <span>🚨 Emergency task {emergency ? <b>— urgent alert to {assignees.length || 'the selected'} people</b> : <span className="muted">(e.g. inspection tomorrow, documents not ready)</span>}</span>
+        </label>
+      )}
       <label className="switch-row">
         <input type="checkbox" checked={f.send_whatsapp} onChange={(e) => set('send_whatsapp', e.target.checked)} />
         <span><Icon name="whatsapp" size={13} /> Send this task on WhatsApp {f.send_whatsapp ? <b className="ok-text">ON</b> : <b className="muted">OFF</b>}</span>
@@ -339,7 +353,7 @@ export default function TaskForm({ onClose, onSaved, task }: { onClose: () => vo
       )}
 
       <button className="btn" style={{ width: '100%', justifyContent: 'center', marginTop: 8 }} disabled={busy} onClick={save}>
-        {busy ? 'Saving…' : task ? 'Save changes' : assignees.length > 1 ? `Assign to ${assignees.length} people` : 'Assign'}
+        {busy ? 'Saving…' : task ? 'Save changes' : `${emergency ? '🚨 ' : ''}${!manager && assignees.some((a) => +a !== me?.id) ? 'Send for approval' : assignees.length > 1 ? `Assign to ${assignees.length} people` : 'Assign'}`}
       </button>
     </Drawer>
   );

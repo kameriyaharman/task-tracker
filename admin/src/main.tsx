@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard';
 import Tasks from './pages/Tasks';
 import Recurring from './pages/Recurring';
 import Templates from './pages/Templates';
+import Knowledge from './pages/Knowledge';
 import Goals from './pages/Goals';
 import Campaigns from './pages/Campaigns';
 import Employees from './pages/Employees';
@@ -74,6 +75,7 @@ function Gate() {
         <Route path="tasks" element={<Tasks />} />
         <Route path="recurring" element={<Recurring />} />
         <Route path="templates" element={<Templates />} />
+        <Route path="knowledge" element={<Knowledge />} />
         <Route path="goals" element={<Goals />} />
         <Route path="campaigns" element={<Campaigns />} />
         <Route path="employees" element={<Employees />} />

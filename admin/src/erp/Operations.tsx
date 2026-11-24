@@ -4,8 +4,9 @@ import { api } from '../api';
 import { Topbar } from '../Layout';
 import { useApi } from '../hooks';
 import { Drawer, ErrorBox, Field, Icon } from '../ui';
+import { KbForm } from '../pages/Knowledge';
 import {
-  ApprovalTrail, DataTable, Files, History, ItemsEditor, NoAccess, Select, St, Tabs, can, d8, dt, linesBody, qty, rs, useAction, useList, useMeta, useProducts, type Line,
+  ApprovalTrail, DataTable, Files, History, ItemsEditor, Kpi, NoAccess, Select, St, Tabs, can, d8, dt, linesBody, qty, rs, useAction, useList, useMeta, useProducts, type Line,
 } from './common';
 
 // ───────── Deliveries ─────────
@@ -189,26 +190,85 @@ export function Expenses() {
   );
 }
 
+const CATS = ['Product defect', 'Short / wrong supply', 'Late delivery', 'Damaged in delivery', 'Billing / rate', 'Installation / service', 'Staff behaviour', 'Shop maintenance', 'Other'];
+const KB_CATS = ['Site work', 'Delivery', 'Products', 'Customers', 'Accounts', 'Stores', 'Sales', 'Safety', 'Other'];
+
+/** What goes wrong, how often, and how fast it gets fixed. */
+function ComplaintAnalysis() {
+  const [months, setMonths] = useState(6);
+  const { data: d } = useApi<any>('/erp/complaints/analysis', { months });
+  if (!d) return <div className="muted">Loading…</div>;
+  const Bars = ({ rows, title }: { rows: any[]; title: string }) => {
+    const max = Math.max(1, ...rows.map((r) => +r.n));
+    return (
+      <div className="card">
+        <h3>{title}</h3>
+        {rows.length ? rows.map((r) => (
+          <div key={r.label} className="hbar" title={`${r.n} complaints · ${r.open_n ?? 0} open · avg ${r.avg_hours ?? '—'} h to fix`}>
+            <span>{r.label}</span><div><i style={{ width: `${(+r.n / max) * 100}%` }} /></div><b>{r.n}</b>
+          </div>
+        )) : <div className="muted">No data</div>}
+      </div>
+    );
+  };
+  const k = d.kpis;
+  const top = d.by_category[0];
+  return (
+    <div className="stack">
+      <div className="row">
+        <span className="muted">Period</span>
+        <select className="input" style={{ width: 140 }} value={months} onChange={(e) => setMonths(+e.target.value)}>{[1, 3, 6, 12].map((m) => <option key={m} value={m}>Last {m} month{m > 1 ? 's' : ''}</option>)}</select>
+      </div>
+      <div className="grid g6">
+        <Kpi label="Complaints" value={k.total} sub={`${k.open_now} open now`} />
+        <Kpi label="Avg time to fix" value={k.avg_hours === null ? '—' : k.avg_hours >= 48 ? `${Math.round(k.avg_hours / 24)} days` : `${k.avg_hours} h`} />
+        <Kpi label="Fixed within 48 h" value={k.within_48h_pct === null ? '—' : `${k.within_48h_pct}%`} tone={k.within_48h_pct !== null && k.within_48h_pct < 70 ? 'red' : 'green'} />
+        <Kpi label="Closed" value={k.closed} />
+        <Kpi label="Closed without a lesson" value={k.without_lesson} sub="add one to stop repeats" tone={k.without_lesson ? 'red' : undefined} />
+        <Kpi label="Open > 7 days" value={d.aging.older ?? 0} tone={d.aging.older ? 'red' : undefined} />
+      </div>
+      {top && <div className="goal-help"><b>Biggest problem:</b> {top.label} — {top.n} of {k.total} complaints ({Math.round((top.n * 100) / Math.max(1, k.total))}%){top.avg_hours ? `, takes ~${top.avg_hours} h to fix` : ''}. Fix the cause of this one first.</div>}
+      <div className="grid g2">
+        <Bars title="By type of problem" rows={d.by_category} />
+        <Bars title="By product" rows={d.by_product} />
+        <Bars title="By person handling" rows={d.by_person} />
+        <Bars title="Per month" rows={d.by_month.map((m: any) => ({ label: m.ym, n: m.n }))} />
+      </div>
+      <div className="grid g2">
+        <div className="card"><h3>Open tickets by age</h3>
+          {[['Under 1 day', d.aging.d1], ['1–3 days', d.aging.d3], ['3–7 days', d.aging.d7], ['Over 7 days', d.aging.older]].map(([l, v]) => <div key={l} className="list-item between"><span>{l}</span><b>{v ?? 0}</b></div>)}
+        </div>
+        <div className="card"><h3>Customers who complained again</h3>
+          {d.repeat_customers.length ? d.repeat_customers.map((c: any) => <div key={c.label} className="list-item between"><span>{c.label}</span><b>{c.n}×</b></div>) : <div className="muted">None — good</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ───────── Complaints & maintenance ─────────
 export function Complaints() {
   const { meta } = useMeta();
   const [tab, setTab] = useState('open');
   const list = useApi<any[]>('/erp/complaints', { status: tab === 'all' ? '' : tab === 'maintenance' ? 'open' : tab, type: tab === 'maintenance' ? 'maintenance' : '' });
   const customers = useList('customers');
+  const products = useProducts();
   const [f, setF] = useState<any>(null);
   const [edit, setEdit] = useState<any>(null);
+  const [lesson, setLesson] = useState<any>(null);
   const a = useAction();
   if (meta && !can(meta, 'complaints')) return <NoAccess />;
+  const prodOpts = products.map((p) => ({ id: p.id, name: p.name }));
   const w = can(meta, 'complaints', true);
   return (
     <>
       <Topbar title="Complaints & maintenance" action={w ? <button className="btn" onClick={() => setF({ type: 'customer', title: '', description: '', priority: 'medium', customer_id: '', assigned_to: '' })}><Icon name="plus" /> New ticket</button> : undefined} />
       <ErrorBox msg={a.err} />
-      <Tabs value={tab} onChange={setTab} tabs={[['open', 'Open'], ['maintenance', 'Shop maintenance'], ['resolved', 'Resolved'], ['all', 'All']]} />
-      <DataTable rows={list.data} onRow={w ? (r) => setEdit({ ...r }) : undefined} cols={[
-        ['Ticket', (r) => r.ticket_no], ['Type', (r) => (r.type === 'maintenance' ? 'Maintenance' : 'Customer')], ['Issue', (r) => <>{r.title}<div className="muted">{r.customer_name ?? ''}{r.invoice_no ? ` · ${r.invoice_no}` : ''}</div></>],
+      <Tabs value={tab} onChange={setTab} tabs={[['open', 'Open'], ['maintenance', 'Shop maintenance'], ['resolved', 'Resolved'], ['all', 'All'], ['analysis', '📊 Analysis']]} />
+      {tab === 'analysis' ? <ComplaintAnalysis /> : <DataTable rows={list.data} onRow={w ? (r) => setEdit({ ...r }) : undefined} cols={[
+        ['Ticket', (r) => r.ticket_no], ['Type', (r) => (r.type === 'maintenance' ? 'Maintenance' : 'Customer')], ['Issue', (r) => <>{r.title}<div className="muted">{[r.category, r.product_name, r.customer_name, r.invoice_no].filter(Boolean).join(' · ')}{+r.lessons ? ' · 📘 lesson saved' : ''}</div></>],
         ['Priority', (r) => <St s={r.priority === 'high' ? 'rejected' : r.priority} />], ['Assigned', (r) => r.assigned_name ?? '—'], ['Opened', (r) => d8(r.created_at)], ['Status', (r) => <St s={r.status} />],
-      ]} />
+      ]} />}
       {f && (
         <Drawer title="New ticket" onClose={() => setF(null)} modal>
           <div className="grid g2">
@@ -216,6 +276,8 @@ export function Complaints() {
             <Field label="Priority"><select value={f.priority} onChange={(e) => setF({ ...f, priority: e.target.value })}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></Field>
             {f.type === 'customer' && <Field label="Customer"><Select value={f.customer_id} onChange={(v) => setF({ ...f, customer_id: v })} options={customers.data ?? []} /></Field>}
             <Field label="Assign to"><Select value={f.assigned_to} onChange={(v) => setF({ ...f, assigned_to: v })} options={meta?.users ?? []} /></Field>
+            <Field label="What kind of problem"><select value={f.category ?? ''} onChange={(e) => setF({ ...f, category: e.target.value })}><option value="">Choose…</option>{CATS.map((c) => <option key={c}>{c}</option>)}</select></Field>
+            {f.type === 'customer' && <Field label="Product (optional)"><Select value={f.product_id ?? ''} onChange={(v) => setF({ ...f, product_id: v })} options={prodOpts} /></Field>}
           </div>
           <Field label="Issue"><input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
           <Field label="Details"><textarea className="input" rows={3} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} style={{ width: '100%' }} /></Field>
@@ -228,11 +290,18 @@ export function Complaints() {
           <div className="grid g2">
             <Field label="Status"><select value={edit.status} onChange={(e) => setEdit({ ...edit, status: e.target.value })}><option value="open">Open</option><option value="in_progress">In progress</option><option value="resolved">Resolved</option><option value="closed">Closed</option></select></Field>
             <Field label="Assigned to"><Select value={edit.assigned_to} onChange={(v) => setEdit({ ...edit, assigned_to: v })} options={meta?.users ?? []} /></Field>
+            <Field label="What kind of problem"><select value={edit.category ?? ''} onChange={(e) => setEdit({ ...edit, category: e.target.value })}><option value="">—</option>{CATS.map((c) => <option key={c}>{c}</option>)}</select></Field>
+            <Field label="Product"><Select value={edit.product_id ?? ''} onChange={(v) => setEdit({ ...edit, product_id: v })} options={prodOpts} /></Field>
           </div>
+          <Field label="Why did it happen (root cause)"><textarea className="input" rows={2} value={edit.root_cause ?? ''} onChange={(e) => setEdit({ ...edit, root_cause: e.target.value })} style={{ width: '100%' }} placeholder="Coils not counted at loading" /></Field>
           <Field label="What was done"><textarea className="input" rows={3} value={edit.resolution ?? ''} onChange={(e) => setEdit({ ...edit, resolution: e.target.value })} style={{ width: '100%' }} /></Field>
-          <button className="btn" disabled={a.busy} onClick={() => a.run(async () => { await api(`/erp/complaints/${edit.id}`, { method: 'PATCH', body: { status: edit.status, assigned_to: edit.assigned_to || null, resolution: edit.resolution } }); setEdit(null); list.reload(); })}>Save</button>
+          <div className="row">
+            <button className="btn" disabled={a.busy} onClick={() => a.run(async () => { await api(`/erp/complaints/${edit.id}`, { method: 'PATCH', body: { status: edit.status, assigned_to: edit.assigned_to || null, resolution: edit.resolution, category: edit.category, product_id: edit.product_id || null, root_cause: edit.root_cause } }); setEdit(null); list.reload(); })}>Save</button>
+            <button className="btn ghost" onClick={() => setLesson({ title: '', problem: [edit.title, edit.root_cause].filter(Boolean).join(' — '), lesson: '', category: edit.type === 'maintenance' ? 'Other' : 'Customers', source_type: 'complaint', source_id: edit.id })}>📘 Save a lesson to knowledge base</button>
+          </div>
         </Drawer>
       )}
+      {lesson && <KbForm k={lesson} categories={KB_CATS} onClose={() => setLesson(null)} onSaved={() => { setLesson(null); list.reload(); }} />}
     </>
   );
 }

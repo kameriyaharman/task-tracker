@@ -104,6 +104,7 @@ export default function TaskDetail({ id, onClose, onChanged }: { id: number; onC
   const [editing, setEditing] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [step, setStep] = useState('');
+  const [note, setNote] = useState('');
 
   const act = async (path: string, body?: Record<string, unknown>, method = 'POST') => {
     setErr(null);
@@ -116,7 +117,7 @@ export default function TaskDetail({ id, onClose, onChanged }: { id: number; onC
   };
 
   if (editing && t) return <TaskForm task={t} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); onChanged(); onClose(); }} />;
-  const open = t && t.status !== 'done' && t.status !== 'cancelled';
+  const open = t && t.status !== 'done' && t.status !== 'cancelled' && t.approval_status === 'none';
   const stepsLeft = t ? t.checklist.filter((c: any) => !+c.is_done).length : 0;
 
   return (
@@ -124,7 +125,24 @@ export default function TaskDetail({ id, onClose, onChanged }: { id: number; onC
       <ErrorBox msg={error || err} />
       {!t ? <Loading /> : (
         <div className="stack">
-          <div className="row"><Pri p={t.priority} /> · <TaskStatus t={t} />{t.source !== 'manual' && <span className="badge">{t.source}</span>}</div>
+          <div className="row"><Pri p={t.priority} /> · <TaskStatus t={t} />{t.source !== 'manual' && <span className="badge">{t.source}</span>}
+            {+t.is_emergency ? <span className="badge overdue">🚨 Emergency</span> : null}
+            {+t.escalation_level > 0 && open ? <span className="badge overdue">Escalated · level {t.escalation_level}</span> : null}</div>
+          {t.approval_status === 'pending' && (
+            <div className="card approval-box">
+              <b>Waiting for approval</b> <span className="muted">— requested by {t.assigner_name}, approver {t.approver_name}</span>
+              {t.can_approve && (
+                <div className="row" style={{ marginTop: 8, flexWrap: 'wrap' }}>
+                  <input className="input" style={{ flex: 1, minWidth: 160 }} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (needed to reject)" />
+                  <button className="btn ok sm" onClick={() => act(`/tasks/${t.id}/approve`, { note })}>Approve</button>
+                  <button className="btn danger sm" onClick={() => act(`/tasks/${t.id}/reject`, { note })}>Reject</button>
+                </div>
+              )}
+            </div>
+          )}
+          {t.approval_status === 'rejected' && <div className="card approval-box rej"><b>Request rejected</b> by {t.approved_by_name}{t.approval_note ? ` — ${t.approval_note}` : ''}</div>}
+          {t.approved_by_name && t.approval_status === 'none' && <div className="muted">✓ Request approved by {t.approved_by_name}</div>}
+          {t.watchers?.length > 0 && <div className="muted">Also watching: {t.watchers.map((w: any) => `${w.name.split(' ')[0]} (${w.reason})`).join(', ')}</div>}
           <h2 style={{ fontSize: 19, margin: 0 }}>{t.title}</h2>
           <div className="muted">{t.assignee_name} · by {t.assigner_name} · due {dueLabel(t.due_at)}</div>
           {t.description && <p style={{ margin: 0 }}>{t.description}</p>}
@@ -204,10 +222,17 @@ export default function TaskDetail({ id, onClose, onChanged }: { id: number; onC
           )}
 
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>Comments</div>
-            {t.comments.map((c: any) => <div key={c.id} className="list-item"><b>{c.user_name.split(' ')[0]}:</b> {c.body}</div>)}
+            <div className="muted" style={{ marginBottom: 6 }}>💬 Chat on this task <span style={{ fontSize: 11 }}>— ask, guide, decide; everyone on the task gets it</span></div>
+            <div className="chat">
+              {t.comments.map((c: any) => (
+                <div key={c.id} className={`bubble ${c.user_id === t.assigned_to ? 'left' : 'right'}`}>
+                  <small>{c.user_name.split(' ')[0]} · {timeOf(c.created_at)}</small>{c.body}
+                </div>
+              ))}
+              {!t.comments.length && <div className="muted" style={{ fontSize: 12 }}>No messages yet</div>}
+            </div>
             <div className="row" style={{ marginTop: 8 }}>
-              <input className="input" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Write a comment…"
+              <input className="input" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Write a message…"
                 onKeyDown={(e) => e.key === 'Enter' && comment && act(`/tasks/${t.id}/comments`, { body: comment }).then(() => setComment(''))} />
               <button className="btn sm" disabled={!comment} onClick={() => act(`/tasks/${t.id}/comments`, { body: comment }).then(() => setComment(''))}>Send</button>
             </div>

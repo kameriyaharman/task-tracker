@@ -7,7 +7,7 @@ import { Empty, ErrorBox, Icon, Loading, Person, Pri, TaskStatus } from '../ui';
 import TaskForm from './TaskForm';
 import TaskDetail from './TaskDetail';
 
-const filters: [string, string][] = [['all', 'All'], ['overdue', 'Overdue'], ['today', 'Today'], ['upcoming', 'Upcoming'], ['recurring', 'Recurring'], ['done', 'Done']];
+const filters: [string, string][] = [['all', 'All'], ['overdue', 'Overdue'], ['escalated', 'Escalated'], ['today', 'Today'], ['upcoming', 'Upcoming'], ['recurring', 'Recurring'], ['approval', 'Waiting approval'], ['done', 'Done']];
 
 export default function Tasks() {
   const [params, setParams] = useSearchParams();
@@ -64,7 +64,7 @@ export default function Tasks() {
               <tbody>
                 {items.map((t) => (
                   <tr key={t.id} className="click" onClick={() => setOpen(t.id)}>
-                    <td style={{ fontWeight: 500 }}>{t.title}<div className="muted mobile-only">{t.assignee_name.split(' ')[0]} · {dueLabel(t.due_at)}</div>{t.checklist_total > 0 && <span className="muted"> · {t.checklist_done}/{t.checklist_total}</span>}</td>
+                    <td style={{ fontWeight: 500 }}>{+t.is_emergency ? '🚨 ' : ''}{t.title}{+t.escalation_level > 0 && t.status !== 'done' ? <span className="badge overdue" style={{ marginLeft: 6 }}>L{t.escalation_level}</span> : null}{t.approval_status === 'pending' ? <span className="badge" style={{ marginLeft: 6 }}>needs approval</span> : null}<div className="muted mobile-only">{t.assignee_name.split(' ')[0]} · {dueLabel(t.due_at)}</div>{t.checklist_total > 0 && <span className="muted"> · {t.checklist_done}/{t.checklist_total}</span>}</td>
                     <td><Person name={t.assignee_name.split(' ')[0]} initials={t.assignee_initials} /></td>
                     <td>{t.assigner_name.split(' ')[0]}</td>
                     <td>{t.repeat_frequency ? `${t.repeat_frequency[0].toUpperCase()}${t.repeat_frequency.slice(1)} · ` : ''}{dueLabel(t.due_at)}</td>

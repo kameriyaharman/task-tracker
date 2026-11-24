@@ -5,7 +5,7 @@ use App\Core\{Auth, Controller, Db, HttpError};
 
 final class EmployeeController extends Controller
 {
-    private const FIELDS = ['name', 'mobile', 'email', 'designation', 'role', 'department_id', 'manager_id', 'language', 'joined_on', 'is_active', 'erp_role_id'];
+    private const FIELDS = ['name', 'mobile', 'email', 'designation', 'role', 'department_id', 'manager_id', 'language', 'joined_on', 'is_active', 'erp_role_id', 'deputy_id'];
 
     /** GET /employees?q=&department_id=&include_inactive= — everyone can list (needed for "Assign to" pickers) */
     public function index(): array
@@ -16,7 +16,7 @@ final class EmployeeController extends Controller
         if (!empty($this->req->query['department_id'])) { $where .= ' AND u.department_id = ?'; $p[] = (int) $this->req->query['department_id']; }
         $mgr = $this->isManager();
         $rows = Db::all("SELECT u.id, u.name, u.designation, u.role, u.department_id, d.name AS department_name, u.manager_id, m.name AS manager_name,
-                                u.is_active, u.joined_on, u.language, u.erp_role_id, er.name AS erp_role_name" . ($mgr ? ', u.mobile, u.email, u.location_consent' : '') . "
+                                u.is_active, u.joined_on, u.language, u.erp_role_id, u.deputy_id, er.name AS erp_role_name" . ($mgr ? ', u.mobile, u.email, u.location_consent' : '') . "
                            FROM users u LEFT JOIN departments d ON d.id = u.department_id LEFT JOIN users m ON m.id = u.manager_id
                       LEFT JOIN erp_roles er ON er.id = u.erp_role_id
                           WHERE $where ORDER BY u.name", $p);
@@ -56,7 +56,7 @@ final class EmployeeController extends Controller
             if (!preg_match('/^\d{10}$/', $d['mobile'])) throw HttpError::badRequest('Mobile must be 10 digits');
         }
         if (isset($d['role']) && !in_array($d['role'], ['owner', 'manager', 'employee'], true)) throw HttpError::badRequest('Bad role');
-        foreach (['department_id', 'manager_id', 'erp_role_id'] as $k) if (array_key_exists($k, $d)) $d[$k] = $d[$k] ? (int) $d[$k] : null;
+        foreach (['department_id', 'manager_id', 'erp_role_id', 'deputy_id'] as $k) if (array_key_exists($k, $d)) $d[$k] = $d[$k] ? (int) $d[$k] : null;
         if (isset($d['is_active'])) $d['is_active'] = $d['is_active'] ? 1 : 0;
         if (array_key_exists('joined_on', $d) && !$d['joined_on']) $d['joined_on'] = null;
         return $d;

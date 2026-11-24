@@ -74,20 +74,15 @@ final class TaskTemplateController extends Controller
         return ['deleted' => true];
     }
 
-    /** GET /task-defaults — default due window used when a task has no due time */
+    /** GET /task-defaults — due window, approval of staff requests, escalation chain */
     public function defaults(): array
     {
-        $s = json_decode((string) Db::value('SELECT erp_settings FROM companies WHERE id = ?', [$this->cid]), true) ?: [];
-        return ['default_due_hours' => (int) ($s['default_due_hours'] ?? 4)];
+        return \App\Services\TaskRules::get($this->cid) + ['targets' => \App\Services\TaskRules::TARGETS];
     }
 
-    /** PATCH /task-defaults {default_due_hours} */
+    /** PATCH /task-defaults {default_due_hours, task_approval, escalation:[{after_hours,to}]} */
     public function saveDefaults(): array
     {
-        $h = max(1, min(72, $this->req->int('default_due_hours') ?: 4));
-        $s = json_decode((string) Db::value('SELECT erp_settings FROM companies WHERE id = ?', [$this->cid]), true) ?: [];
-        $s['default_due_hours'] = $h;
-        Db::exec('UPDATE companies SET erp_settings = ? WHERE id = ?', [json_encode($s), $this->cid]);
-        return ['default_due_hours' => $h];
+        return \App\Services\TaskRules::save($this->cid, $this->req->only(['default_due_hours', 'task_approval', 'escalation'])) + ['targets' => \App\Services\TaskRules::TARGETS];
     }
 }

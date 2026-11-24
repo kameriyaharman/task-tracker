@@ -66,7 +66,9 @@ export default function Me() {
         <Item label={t('timesheet')} onPress={() => router.push('/timesheet')} />
         <Item label={t('performance')} onPress={() => router.push('/performance')} />
         <Item label={t('goals')} onPress={() => router.push('/goals')} />
-        {isManager && <Item label={t('approvals')} onPress={() => router.push('/approvals')} />}
+        <Item label="📘 Knowledge base (lessons learnt)" onPress={() => router.push('/knowledge')} />
+        <Item label="🔁 Hand over my tasks (leave / emergency)" onPress={() => router.push('/handover')} />
+        <Item label={`${t('approvals')}${isManager ? '' : ' (task requests)'}`} onPress={() => router.push('/approvals')} />
         {isManager && <Item label={t('team_location')} onPress={() => router.push('/team-map')} />}
         {isManager && <Item label={t('ai_suggestions')} onPress={() => router.push('/ai')} />}
       </Card>

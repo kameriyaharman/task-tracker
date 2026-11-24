@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, Switch, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { api, form, type UploadFile } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
@@ -14,7 +14,7 @@ const DAYS: [number, string][] = [[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu']
 
 /** "Delegate a task" + inline "Recurring task" settings. Voice screen can pre-fill via params. */
 export default function NewTask() {
-  const { t, me } = useAuth();
+  const { t, me, isManager } = useAuth();
   const p = useLocalSearchParams<{ title?: string; assigned_to?: string; due_at?: string; priority?: string; source?: string }>();
   const people = useApi<any[]>('/employees');
   const depts = useApi<any[]>('/departments');
@@ -30,6 +30,7 @@ export default function NewTask() {
   const [due, setDue] = useState<Date>(p.due_at ? new Date(p.due_at.replace(' ', 'T')) : defaultDue());
   const [priority, setPriority] = useState(p.priority ?? 'medium');
   const [whatsapp, setWhatsapp] = useState(true);
+  const [emergency, setEmergency] = useState(false);
   const [remind, setRemind] = useState(true);
   const [checklist, setChecklist] = useState<{ label: string; assigned_to: number | null }[]>([]);
   const [stepFor, setStepFor] = useState<number | null>(null);
@@ -91,10 +92,11 @@ export default function NewTask() {
       const r = await api<any>('/tasks', {
         body: form(
           { title: title.trim(), assignees: JSON.stringify(assignees), due_at: sqlDateTime(due), priority, send_whatsapp: whatsapp, remind_before_min: remind ? 60 : undefined,
-            checklist: JSON.stringify(checklist.filter((c) => c.label.trim())), repeat, source: p.source ?? 'manual', voice_duration: voice.file ? voice.seconds : undefined },
+            checklist: JSON.stringify(checklist.filter((c) => c.label.trim())), repeat, is_emergency: emergency ? 1 : undefined, source: p.source ?? 'manual', voice_duration: voice.file ? voice.seconds : undefined },
           { attachments: files, voice_note: voice.file },
         ),
       });
+      if (r.needs_approval) Alert.alert('Sent for approval', `${r.approver_name} will approve it, then it reaches ${assignees.length > 1 ? 'them' : nameOf(assignees[0]).split(' ')[0]}.`);
       router.replace(`/task/${r.id}`);
     } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
   };
@@ -134,7 +136,7 @@ export default function NewTask() {
 
       <T muted style={{ marginBottom: 6 }}>Department</T>
       <Chips items={[[0, 'All'], ...((depts.data ?? []).map((d) => [d.id, d.name]) as [number, string][])]} value={dept ?? 0} onChange={(v: number) => setDept(v || null)} />
-      <View style={{ height: 10 }} />
+      {dept ? <Text onPress={() => setAssignees(Array.from(new Set([...assignees, ...visible.map((x) => x.id)])))} style={{ color: C.gold, fontWeight: '600', marginVertical: 8 }}>＋ Everyone in this department ({visible.length})</Text> : <View style={{ height: 10 }} />}
 
       <Select label={`${t('assign_to')} *`} error={errors.assignee} value={assignees.length ? assignees.map((id) => nameOf(id)).join(', ') : 'Tap to choose (one or more)'} onPress={() => { setErrors({ ...errors, assignee: '' }); setPicker('assignee'); }} />
       <Row gap={10}>
@@ -165,11 +167,12 @@ export default function NewTask() {
       </Card>
 
       <Card style={{ marginBottom: 16, paddingVertical: 6 }}>
+        <Row style={{ justifyContent: 'space-between', paddingVertical: 6 }}><T color={emergency ? C.red : undefined}>🚨 Emergency (urgent alert)</T><Switch value={emergency} onValueChange={(v) => { setEmergency(v); if (v) { setPriority('urgent'); if (dept) setAssignees(visible.map((x) => x.id)); } }} trackColor={{ true: C.red }} /></Row>
         <Row style={{ justifyContent: 'space-between', paddingVertical: 6 }}><T>🟢 {t('send_whatsapp')}</T><Switch value={whatsapp} onValueChange={setWhatsapp} trackColor={{ true: C.green }} /></Row>
         <Row style={{ justifyContent: 'space-between', paddingVertical: 6 }}><T>⏰ {t('remind_before')}</T><Switch value={remind} onValueChange={setRemind} trackColor={{ true: C.gold }} /></Row>
       </Card>
 
-      <Button title={assignees.length > 1 ? `${t('assign_task')} (${assignees.length})` : t('assign_task')} onPress={save} loading={busy} />
+      <Button title={`${emergency ? '🚨 ' : ''}${!isManager && assignees.some((a) => a !== me?.id) ? 'Send for approval' : assignees.length > 1 ? `${t('assign_task')} (${assignees.length})` : t('assign_task')}`} onPress={save} loading={busy} />
 
       <Picker visible={picker === 'assignee'} multi title={`${t('assign_to')} — tick one or more`} search onClose={() => setPicker(null)}
         onPick={(id) => setAssignees(assignees.includes(id) ? assignees.filter((x) => x !== id) : [...assignees, id])}

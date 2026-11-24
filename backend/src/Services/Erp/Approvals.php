@@ -71,11 +71,26 @@ final class Approvals
     {
         $ids = array_column(Db::all('SELECT id FROM users WHERE company_id = ? AND role = ? AND is_active = 1 AND id <> ?', [$cid, $role, $requesterId]), 'id');
         if (!$ids && $role === 'manager') $ids = array_column(Db::all("SELECT id FROM users WHERE company_id = ? AND role = 'owner' AND is_active = 1", [$cid]), 'id');
-        foreach ($ids as $id) Notifier::notify($cid, (int) $id, 'approval_needed', 'Approval needed', $summary, 'approval', null);
+        $deps = $ids ? array_column(Db::all('SELECT deputy_id FROM users WHERE deputy_id IS NOT NULL AND id IN ' . Db::in($ids), $ids), 'deputy_id') : [];
+        foreach (array_unique(array_merge($ids, $deps)) as $id) Notifier::notify($cid, (int) $id, 'approval_needed', 'Approval needed', $summary, 'approval', null);
+    }
+
+    /** A person set as the boss's / a manager's deputy (backup approver) can approve for them. */
+    public static function effective(array $user): array
+    {
+        $for = Db::all("SELECT id, name, role FROM users WHERE company_id = ? AND deputy_id = ? AND is_active = 1 AND role IN ('owner','manager')", [$user['company_id'], $user['id']]);
+        foreach ($for as $f) {
+            if ($f['role'] === 'owner' || ($f['role'] === 'manager' && $user['role'] === 'employee')) {
+                $user['role'] = $f['role'];
+                $user['behalf_of'] = $f['name'];
+            }
+        }
+        return $user;
     }
 
     public static function pendingFor(array $user): array
     {
+        $user = self::effective($user);
         $cid = (int) $user['company_id'];
         if ($user['role'] === 'employee') return [];
         $roleCond = $user['role'] === 'owner' ? "a.status = 'pending'" : "a.status = 'pending' AND a.approver_role = 'manager' AND a.requested_by <> ?";
@@ -98,6 +113,8 @@ final class Approvals
     /** Approve or reject one approval row. Returns 'approved' | 'rejected' | 'next' (moved to next level). */
     public static function act(array $user, int $approvalId, bool $approve, ?string $remarks): string
     {
+        $user = self::effective($user);
+        if (!empty($user['behalf_of'])) $remarks = trim(($remarks ?? '') . " (on behalf of {$user['behalf_of']})");
         $cid = (int) $user['company_id'];
         $a = Db::one("SELECT * FROM approvals WHERE id = ? AND company_id = ? AND status = 'pending'", [$approvalId, $cid]);
         if (!$a) throw HttpError::notFound('This approval is no longer pending');
@@ -106,7 +123,7 @@ final class Approvals
             if ($user['role'] !== 'manager' || $a['approver_role'] !== 'manager') throw HttpError::forbidden('Only the boss can approve this');
             if ((int) $a['requested_by'] === (int) $user['id']) throw HttpError::forbidden('You cannot approve your own request');
         }
-        if (!$approve && !trim((string) $remarks)) throw HttpError::badRequest('Reason is required to reject');
+        if (!$approve && !trim(preg_replace('/\(on behalf of [^)]*\)/', '', (string) $remarks))) throw HttpError::badRequest('Reason is required to reject');
 
         $now = date('Y-m-d H:i:s');
         Db::update('approvals', (int) $a['id'], ['status' => $approve ? 'approved' : 'rejected', 'acted_by' => $user['id'], 'acted_at' => $now, 'remarks' => $remarks]);

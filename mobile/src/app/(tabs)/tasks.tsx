@@ -34,7 +34,7 @@ export default function Tasks() {
         </View>
       )}
       <Chips
-        items={[['today', t('today'), c.today], ['overdue', t('overdue'), c.overdue], ['upcoming', t('upcoming'), c.upcoming], ['done', t('done')], ['all', 'All']]}
+        items={[['today', t('today'), c.today], ['overdue', t('overdue'), c.overdue], ['escalated', 'Escalated'], ['upcoming', t('upcoming'), c.upcoming], ...(scope !== 'to_me' ? [['approval', 'Waiting approval']] as any : []), ['done', t('done')], ['all', 'All']]}
         value={filter} onChange={setFilter}
       />
       <View style={{ height: 12 }} />

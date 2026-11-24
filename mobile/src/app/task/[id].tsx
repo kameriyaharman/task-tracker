@@ -13,6 +13,7 @@ export default function TaskDetail() {
   const { t, me } = useAuth();
   const { data: task, error, setData, reload } = useApi<any>(`/tasks/${id}`);
   const [comment, setComment] = useState('');
+  const [note, setNote] = useState('');
   const [err, setErr] = useState<string | null>(null);
 
   const act = async (path: string, body: Record<string, any> = {}, method = 'POST') => {
@@ -23,7 +24,7 @@ export default function TaskDetail() {
   if (!task) return <Screen back title={t('task')}><ErrorText msg={error} />{!error && <Loading />}</Screen>;
   const st = task.display_status;
   const isMine = task.assigned_to === me?.id;
-  const done = task.status === 'done';
+  const done = task.status === 'done' || task.status === 'cancelled' || task.approval_status !== 'none';
   const checked = task.checklist.filter((c: any) => +c.is_done).length;
   const openSteps = task.checklist.length - checked;
   const shareWa = () => {
@@ -55,6 +56,28 @@ export default function TaskDetail() {
         <Text style={{ color: C.muted }}>·</Text>
         <Badge s={st} label={st === 'overdue' ? `${t('overdue')} ${overdueLabel(task.overdue_minutes)}` : t(st)} />
       </Row>
+      {+task.is_emergency || (+task.escalation_level > 0 && !done) ? (
+        <Row gap={6} style={{ marginTop: 6 }}>
+          {+task.is_emergency ? <Badge s="overdue" label="🚨 Emergency" /> : null}
+          {+task.escalation_level > 0 && !done ? <Badge s="overdue" label={`Escalated · level ${task.escalation_level}`} /> : null}
+        </Row>
+      ) : null}
+      {task.approval_status === 'pending' && (
+        <Card style={{ marginTop: 10, borderColor: C.amber, backgroundColor: '#FFFAF0' }}>
+          <T b>Waiting for approval</T>
+          <T muted>Requested by {first(task.assigner_name)} · approver {first(task.approver_name ?? '')}</T>
+          {task.can_approve && (
+            <>
+              <Input style={{ marginTop: 8 }} value={note} onChangeText={setNote} placeholder="Note (needed to reject)" />
+              <Row gap={10}>
+                <Button small variant="danger" title={t('reject')} style={{ flex: 1 }} onPress={() => act(`/tasks/${task.id}/reject`, { note })} />
+                <Button small title={t('approve')} style={{ flex: 1 }} onPress={() => act(`/tasks/${task.id}/approve`, { note })} />
+              </Row>
+            </>
+          )}
+        </Card>
+      )}
+      {task.approval_status === 'rejected' && <Card style={{ marginTop: 10, borderColor: C.red }}><T b color={C.red}>Request rejected</T><T muted>{task.approval_note}</T></Card>}
       <T b size={22} style={{ marginTop: 8 }}>{task.title}</T>
       <Row style={{ marginTop: 8 }} gap={8}>
         <Avatar initials={task.assignee_initials} size={24} />
@@ -104,10 +127,17 @@ export default function TaskDetail() {
         </Card>
       )}
 
-      <Section title={t('comments')}>
-        {task.comments.map((c: any) => (
-          <Card key={c.id} style={{ marginBottom: 6, padding: 10 }}><T><Text style={{ fontWeight: '600' }}>{first(c.user_name)}:</Text> {c.body}</T></Card>
-        ))}
+      <Section title={`💬 ${t('comments')}`}>
+        {task.comments.map((c: any) => {
+          const mine = c.user_id === me?.id;
+          return (
+            <View key={c.id} style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '85%', marginBottom: 6, padding: 10, borderRadius: 14,
+              backgroundColor: mine ? C.goldSoft : '#fff', borderWidth: 1, borderColor: mine ? '#ECD9B4' : C.line }}>
+              <Text style={{ fontSize: 11, color: C.muted, marginBottom: 2 }}>{mine ? 'You' : first(c.user_name)}</Text>
+              <T>{c.body}</T>
+            </View>
+          );
+        })}
         <Row gap={8}>
           <Input style={{ flex: 1, marginBottom: 0 }} value={comment} onChangeText={setComment} placeholder={t('message')} />
           <Button small title="➤" disabled={!comment.trim()} onPress={() => act(`/tasks/${task.id}/comments`, { body: comment }).then(() => setComment(''))} />

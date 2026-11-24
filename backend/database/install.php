@@ -69,6 +69,42 @@ Db::pdo()->exec("CREATE TABLE IF NOT EXISTS task_templates (
   UNIQUE KEY uq_tpl_code (company_id, code),
   FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+// v4 — task approval, backup approver, escalation chain, emergency, handover, goal updates, knowledge base, complaint analysis
+if (strpos($colType('task_activity', 'action'), '255') === false) Db::pdo()->exec('ALTER TABLE task_activity MODIFY action VARCHAR(255) NOT NULL');
+if (!$col('users', 'deputy_id')) Db::pdo()->exec('ALTER TABLE users ADD COLUMN deputy_id INT UNSIGNED NULL');
+if (!$col('tasks', 'approval_status')) {
+    Db::pdo()->exec("ALTER TABLE tasks ADD COLUMN approval_status ENUM('none','pending','rejected') NOT NULL DEFAULT 'none',
+        ADD COLUMN approver_id INT UNSIGNED NULL, ADD COLUMN approved_by INT UNSIGNED NULL, ADD COLUMN approval_note VARCHAR(255) NULL,
+        ADD COLUMN escalation_level TINYINT NOT NULL DEFAULT 0, ADD COLUMN is_emergency TINYINT(1) NOT NULL DEFAULT 0");
+    // tasks already late when this ships don't flood everyone with escalations
+    Db::exec("UPDATE tasks SET escalation_level = 4 WHERE status NOT IN ('done','cancelled') AND due_at < NOW()");
+}
+if (!$col('goals', 'measure')) Db::pdo()->exec("ALTER TABLE goals ADD COLUMN measure ENUM('manual','tasks') NOT NULL DEFAULT 'manual'");
+if (!$col('complaints', 'category')) {
+    Db::pdo()->exec('ALTER TABLE complaints ADD COLUMN category VARCHAR(40) NULL, ADD COLUMN product_id INT UNSIGNED NULL, ADD COLUMN root_cause TEXT NULL');
+}
+Db::pdo()->exec("CREATE TABLE IF NOT EXISTS task_watchers (
+  task_id INT UNSIGNED NOT NULL, user_id INT UNSIGNED NOT NULL, reason VARCHAR(20) NOT NULL DEFAULT 'escalation',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (task_id, user_id),
+  FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+Db::pdo()->exec("CREATE TABLE IF NOT EXISTS task_handovers (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, company_id INT UNSIGNED NOT NULL,
+  from_user INT UNSIGNED NOT NULL, to_user INT UNSIGNED NOT NULL, by_user INT UNSIGNED NOT NULL,
+  task_ids TEXT NOT NULL, note VARCHAR(255) NULL, until_date DATE NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, returned_at DATETIME NULL,
+  FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+Db::pdo()->exec("CREATE TABLE IF NOT EXISTS goal_updates (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, goal_id INT UNSIGNED NOT NULL, user_id INT UNSIGNED NOT NULL,
+  added DECIMAL(14,2) NOT NULL DEFAULT 0, new_value DECIMAL(14,2) NOT NULL, note VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (goal_id) REFERENCES goals(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+Db::pdo()->exec("CREATE TABLE IF NOT EXISTS kb_entries (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, company_id INT UNSIGNED NOT NULL,
+  title VARCHAR(200) NOT NULL, problem TEXT NULL, lesson TEXT NOT NULL, category VARCHAR(40) NULL, tags VARCHAR(200) NULL,
+  source_type VARCHAR(20) NULL, source_id INT UNSIGNED NULL, created_by INT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NULL,
+  KEY idx_kb_src (source_type, source_id),
+  FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 echo "Schema OK\n";
 
 $code = strtoupper((string) (getenv('COMPANY_CODE') ?: 'KESHAV'));
@@ -100,6 +136,31 @@ if (!Db::value('SELECT id FROM companies WHERE code = ?', [$code])) {
 
 // ERP defaults (warehouses, units, roles, approval rules, sample workflows) for every company
 foreach (Db::all('SELECT id FROM companies') as $c) App\Services\Erp\Seed::run((int) $c['id']);
+
+// Old complaints without a category get one from their title (for the analysis page)
+Db::exec("UPDATE complaints SET category = CASE
+    WHEN type = 'maintenance' THEN 'Shop maintenance'
+    WHEN title LIKE '%short%' OR title LIKE '%wrong%' OR title LIKE '%missing%' THEN 'Short / wrong supply'
+    WHEN title LIKE '%late%' OR title LIKE '%delay%' THEN 'Late delivery'
+    WHEN title LIKE '%damag%' OR title LIKE '%broken%' OR title LIKE '%crack%' THEN 'Damaged in delivery'
+    WHEN title LIKE '%bill%' OR title LIKE '%rate%' OR title LIKE '%price%' THEN 'Billing / rate'
+    WHEN title LIKE '%noise%' OR title LIKE '%not work%' OR title LIKE '%leak%' OR title LIKE '%defect%' THEN 'Product defect'
+    ELSE 'Other' END WHERE category IS NULL");
+
+// A few example lessons so the knowledge base isn't empty on day one
+foreach (Db::all('SELECT id FROM companies') as $c) {
+    if (Db::value('SELECT 1 FROM kb_entries WHERE company_id = ?', [$c['id']])) continue;
+    $by = Db::value("SELECT id FROM users WHERE company_id = ? AND role = 'owner' ORDER BY id LIMIT 1", [$c['id']]);
+    if (!$by) continue;
+    foreach ([
+        ['Seal joints before pouring concrete', 'Concrete slurry leaked through shuttering joints at a customer site.', 'Put tape / foam on all shuttering joints before pouring. Check once more just before the pour.', 'Site work', 'concrete, leakage, shuttering'],
+        ['Count coils in front of the customer', 'Customer complained 2 wire coils were short after delivery.', 'Delivery boy counts every bundle with the customer and takes a photo of the material before taking OTP.', 'Delivery', 'short supply, wire, OTP'],
+        ['Check paint shade code on the bill', 'Wrong shade given — customer had to come back.', 'Write the shade code on the bill and read it out to the customer before packing.', 'Products', 'paint, shade'],
+        ['Confirm credit limit before giving material on udhari', 'Material given to a contractor whose old dues were already overdue.', 'Check customer outstanding on the bill screen; above limit needs manager approval.', 'Accounts', 'credit, udhari, recovery'],
+    ] as [$t, $pb, $l, $cat, $tags]) {
+        Db::insert('kb_entries', ['company_id' => $c['id'], 'title' => $t, 'problem' => $pb, 'lesson' => $l, 'category' => $cat, 'tags' => $tags, 'created_by' => $by]);
+    }
+}
 
 // Starter task templates (standard showroom jobs) — only when a company has none yet
 foreach (Db::all('SELECT id FROM companies') as $c) {

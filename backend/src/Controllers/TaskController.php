@@ -51,7 +51,9 @@ final class TaskController extends Controller
         $t = $rows[0];
         $can = $t['assigned_to'] === $this->uid() || $t['assigned_by'] === $this->uid()
             || ($this->isManager() && in_array($t['assigned_to'], Auth::teamIds($this->user), true))
-            || Db::value('SELECT 1 FROM task_checklist WHERE task_id = ? AND assigned_to = ?', [$t['id'], $this->uid()]);
+            || Db::value('SELECT 1 FROM task_checklist WHERE task_id = ? AND assigned_to = ?', [$t['id'], $this->uid()])
+            || Db::value('SELECT 1 FROM task_watchers WHERE task_id = ? AND user_id = ?', [$t['id'], $this->uid()])
+            || ($t['approval_status'] !== 'none' && \App\Services\TaskRules::canApprove($this->user, $t['approver_id'] ? (int) $t['approver_id'] : null));
         if (!$can) throw HttpError::forbidden();
         return $t;
     }
@@ -82,8 +84,9 @@ final class TaskController extends Controller
                 $ids = Auth::teamIds($this->user);
                 $where[] = 't.assigned_to IN ' . Db::in($ids); $p = array_merge($p, $ids); break;
             default:
-                $where[] = '(t.assigned_to = ? OR EXISTS (SELECT 1 FROM task_checklist cl WHERE cl.task_id = t.id AND cl.assigned_to = ?))';
-                $p[] = $this->uid(); $p[] = $this->uid();
+                $where[] = "((t.assigned_to = ? AND t.approval_status = 'none') OR EXISTS (SELECT 1 FROM task_checklist cl WHERE cl.task_id = t.id AND cl.assigned_to = ?)
+                             OR EXISTS (SELECT 1 FROM task_watchers tw WHERE tw.task_id = t.id AND tw.user_id = ?))";
+                $p[] = $this->uid(); $p[] = $this->uid(); $p[] = $this->uid();
         }
 
         $open = "t.status NOT IN ('done','cancelled')";
@@ -94,7 +97,10 @@ final class TaskController extends Controller
             case 'done': $where[] = "t.status = 'done'"; break;
             case 'open': $where[] = $open; break;
             case 'recurring': $where[] = 't.recurring_rule_id IS NOT NULL'; break;
+            case 'escalated': $where[] = "$open AND t.escalation_level > 0"; break;
+            case 'approval': $where[] = "t.approval_status = 'pending'"; break;
         }
+        if ($scope === 'team' && ($q['filter'] ?? '') !== 'approval') $where[] = "t.approval_status = 'none'";
         if (!empty($q['q'])) {
             $where[] = '(t.title LIKE ? OR t.description LIKE ? OR ua.name LIKE ? OR EXISTS (SELECT 1 FROM task_checklist cq WHERE cq.task_id = t.id AND cq.label LIKE ?))';
             $like = '%' . $q['q'] . '%'; array_push($p, $like, $like, $like, $like);
@@ -114,7 +120,7 @@ final class TaskController extends Controller
 
         // tab counters for the chips (Today 5 · Overdue 2 …) within the chosen scope
         $scopeWhere = $where[0];
-        $scopeParams = array_slice($p, 0, $scope === 'team' ? count(Auth::teamIds($this->user)) : ($scope === 'by_me' ? 1 : 2));
+        $scopeParams = array_slice($p, 0, $scope === 'team' ? count(Auth::teamIds($this->user)) : ($scope === 'by_me' ? 1 : 3));
         $c = Db::one("SELECT COUNT(*) AS all_,
                 SUM(DATE(t.due_at) = CURDATE()) AS today,
                 SUM($open AND t.due_at < NOW()) AS overdue,
@@ -141,6 +147,10 @@ final class TaskController extends Controller
         $t['activity'] = Db::all('SELECT a.action, a.meta, a.created_at, u.name AS user_name FROM task_activity a
                                 LEFT JOIN users u ON u.id = a.user_id WHERE a.task_id = ? ORDER BY a.id', [$t['id']]);
         $t['can_manage'] = $this->canManage($t);
+        $t['approver_name'] = $t['approver_id'] ? Db::value('SELECT name FROM users WHERE id = ?', [$t['approver_id']]) : null;
+        $t['approved_by_name'] = $t['approved_by'] ? Db::value('SELECT name FROM users WHERE id = ?', [$t['approved_by']]) : null;
+        $t['can_approve'] = $t['approval_status'] === 'pending' && \App\Services\TaskRules::canApprove($this->user, $t['approver_id'] ? (int) $t['approver_id'] : null);
+        $t['watchers'] = Db::all('SELECT w.user_id, w.reason, u.name FROM task_watchers w JOIN users u ON u.id = w.user_id WHERE w.task_id = ?', [$t['id']]);
         return $t;
     }
 
@@ -173,6 +183,15 @@ final class TaskController extends Controller
         if (is_string($repeat)) $repeat = json_decode($repeat, true);
         $checklist = $this->checklistInput();
 
+        // Staff can raise tasks for others, but they go live only after approval (manager → dept head → boss, or their deputy)
+        $emergency = (bool) $this->req->input('is_emergency');
+        if ($emergency) $base['priority'] = 'urgent';
+        $rules = \App\Services\TaskRules::get($this->cid);
+        $others = array_filter($assignees, fn($a) => $a !== $this->uid());
+        $needsApproval = $rules['task_approval'] && !$this->isManager() && $others;
+        $approver = $needsApproval ? \App\Services\TaskRules::approverFor($this->user) : null;
+        if ($needsApproval && $approver === $this->uid()) $needsApproval = false;
+
         $ids = [];
         foreach ($assignees as $assignee) {
             $data = array_merge($base, [
@@ -183,6 +202,8 @@ final class TaskController extends Controller
                 'source' => in_array($this->req->input('source'), ['voice', 'ai', 'manual'], true) ? $this->req->input('source') : 'manual',
             ]);
             unset($data['id']);
+            $data['is_emergency'] = $emergency ? 1 : 0;
+            if ($needsApproval && $assignee !== $this->uid()) { $data['approval_status'] = 'pending'; $data['approver_id'] = $approver; }
             if (empty($data['department_id']) || count($assignees) > 1) {
                 $data['department_id'] = Db::value('SELECT department_id FROM users WHERE id = ?', [$assignee]) ?: ($base['department_id'] ?? null);
             }
@@ -221,13 +242,24 @@ final class TaskController extends Controller
             }
         }
 
+        $pending = 0;
         foreach ($ids as $id) {
             $this->log($id, 'created');
+            if (Db::value('SELECT approval_status FROM tasks WHERE id = ?', [$id]) === 'pending') { $pending++; continue; }
             self::announceAssignment($id, $this->user['name']);
             self::notifyChecklistOwners($id, $this->user['name']);
         }
+        if ($pending) {
+            $title = ($emergency ? '🚨 ' : '') . "Task request from {$this->user['name']}";
+            $dep = Db::value('SELECT deputy_id FROM users WHERE id = ?', [$approver]);
+            foreach (array_filter([$approver, $dep ? (int) $dep : null]) as $u) {
+                Notifier::notify($this->cid, $u, 'approval_needed', $title, mb_substr(trim($in['title']), 0, 120) . ($pending > 1 ? " · $pending people" : ''), 'task', $ids[0]);
+            }
+        }
         $out = $this->show2($ids[0]);
         $out['created_ids'] = $ids;
+        $out['needs_approval'] = $pending > 0;
+        $out['approver_name'] = $pending ? Db::value('SELECT name FROM users WHERE id = ?', [$approver]) : null;
         return $out;
     }
 
@@ -248,7 +280,7 @@ final class TaskController extends Controller
         $t = Db::one('SELECT * FROM tasks WHERE id = ?', [$taskId]);
         if ((int) $t['assigned_to'] === (int) $t['assigned_by']) return;
         $assignee = Db::one('SELECT * FROM users WHERE id = ?', [$t['assigned_to']]);
-        Notifier::notify((int) $t['company_id'], (int) $t['assigned_to'], 'task_assigned', 'New task assigned', $t['title'], 'task', $taskId);
+        Notifier::notify((int) $t['company_id'], (int) $t['assigned_to'], 'task_assigned', $t['is_emergency'] ? '🚨 EMERGENCY task' : 'New task assigned', $t['title'], 'task', $taskId);
         if ($t['send_whatsapp']) WhatsApp::taskAssigned($t, $assignee, $byName);
     }
 
@@ -330,7 +362,7 @@ final class TaskController extends Controller
         $data = self::cleanTaskData($this->req->only(self::EDITABLE));
         if (isset($data['assigned_to'])) $this->assertSameCompanyUser((int) $data['assigned_to']);
         if (isset($data['send_whatsapp'])) $data['send_whatsapp'] = $data['send_whatsapp'] ? 1 : 0;
-        if (isset($data['due_at'])) $data['reminder_sent_at'] = null;
+        if (isset($data['due_at'])) { $data['reminder_sent_at'] = null; if (strtotime($data['due_at']) > time()) $data['escalation_level'] = 0; }
         if ($r = $this->req->int('manager_rating')) $data['manager_rating'] = max(1, min(5, $r));
         Db::update('tasks', $t['id'], $data, $this->cid);
         $this->log($t['id'], 'updated', array_keys($data));
@@ -488,6 +520,101 @@ final class TaskController extends Controller
         if (!$this->canManage($t)) throw HttpError::forbidden();
         Db::exec('DELETE FROM tasks WHERE id = ? AND company_id = ?', [$t['id'], $this->cid]);
         return ['deleted' => true];
+    }
+
+    /* ───────────── task requests (approval) ───────────── */
+
+    /** GET /task-approvals — task requests waiting for me (approver, their deputy, or the boss) + recent decisions */
+    public function approvals(): array
+    {
+        $rows = self::fetchList($this->cid, "t.approval_status = 'pending'", [], 't.id DESC', 200);
+        $mine = array_values(array_filter($rows, fn($t) => \App\Services\TaskRules::canApprove($this->user, $t['approver_id'] ? (int) $t['approver_id'] : null)));
+        foreach ($mine as &$t) $t['approver_name'] = Db::value('SELECT name FROM users WHERE id = ?', [$t['approver_id']]);
+        $done = Db::all("SELECT a.task_id, a.action, a.created_at, u.name AS by_name, t.title, ua.name AS assignee_name, ub.name AS requested_by
+                           FROM task_activity a JOIN tasks t ON t.id = a.task_id LEFT JOIN users u ON u.id = a.user_id
+                           JOIN users ua ON ua.id = t.assigned_to JOIN users ub ON ub.id = t.assigned_by
+                          WHERE t.company_id = ? AND (a.action LIKE 'request approved%' OR a.action LIKE 'request rejected%') ORDER BY a.id DESC LIMIT 50", [$this->cid]);
+        return ['pending' => $mine, 'history' => $done];
+    }
+
+    /** POST /tasks/{id}/approve {note} · /tasks/{id}/reject {note} */
+    public function approve(): array { return $this->decide(true); }
+    public function reject(): array { return $this->decide(false); }
+
+    private function decide(bool $ok): array
+    {
+        $t = $this->load($this->param('id'));
+        if ($t['approval_status'] !== 'pending') throw HttpError::badRequest('This request is already decided');
+        if (!\App\Services\TaskRules::canApprove($this->user, $t['approver_id'] ? (int) $t['approver_id'] : null)) throw HttpError::forbidden('Only the approver or their deputy can decide');
+        $note = trim((string) $this->req->input('note'));
+        if (!$ok && $note === '') throw HttpError::badRequest('Write a reason to reject');
+        $behalf = ($t['approver_id'] && (int) $t['approver_id'] !== $this->uid()) ? ' (on behalf of ' . Db::value('SELECT name FROM users WHERE id = ?', [$t['approver_id']]) . ')' : '';
+        Db::update('tasks', $t['id'], ['approval_status' => $ok ? 'none' : 'rejected', 'approved_by' => $this->uid(), 'approval_note' => mb_substr($note, 0, 250) ?: null]
+            + ($ok ? [] : ['status' => 'cancelled']));
+        $this->log($t['id'], ($ok ? 'request approved' : 'request rejected') . $behalf . ($note ? ": $note" : ''));
+        if ($ok) {
+            self::announceAssignment($t['id'], Db::value('SELECT name FROM users WHERE id = ?', [$t['assigned_by']]));
+            self::notifyChecklistOwners($t['id'], $this->user['name']);
+        }
+        Notifier::notify($this->cid, (int) $t['assigned_by'], $ok ? 'approval_done' : 'approval_rejected',
+            ($ok ? 'Task approved: ' : 'Task request rejected: ') . $t['title'], $ok ? "By {$this->user['name']}$behalf" : $note, 'task', $t['id']);
+        return $this->show();
+    }
+
+    /* ───────────── handover (going on leave) ───────────── */
+
+    /** POST /tasks/handover {to_user, from_user?, note, until_date} — move every open task to a colleague */
+    public function handover(): array
+    {
+        $from = $this->req->int('from_user') ?: $this->uid();
+        $to = $this->req->int('to_user');
+        if (!$to) throw HttpError::badRequest('Choose who will take over the tasks');
+        if ($from === $to) throw HttpError::badRequest('Choose a different person');
+        $this->assertSameCompanyUser($from); $this->assertSameCompanyUser($to);
+        if ($from !== $this->uid() && !$this->isManager()) throw HttpError::forbidden('Only a manager can hand over someone else\'s tasks');
+        $ids = array_map('intval', array_column(Db::all("SELECT id FROM tasks WHERE company_id = ? AND assigned_to = ? AND status NOT IN ('done','cancelled')", [$this->cid, $from]), 'id'));
+        if (!$ids) throw HttpError::badRequest('There are no open tasks to hand over');
+        $fromName = Db::value('SELECT name FROM users WHERE id = ?', [$from]);
+        $toName = Db::value('SELECT name FROM users WHERE id = ?', [$to]);
+        $note = mb_substr(trim((string) $this->req->input('note')), 0, 250) ?: null;
+        Db::tx(function () use ($ids, $to, $from, $note, $fromName, $toName) {
+            Db::exec('UPDATE tasks SET assigned_to = ? WHERE id IN ' . Db::in($ids), array_merge([$to], $ids));
+            Db::exec('UPDATE task_checklist SET assigned_to = ? WHERE assigned_to = ? AND is_done = 0 AND task_id IN ' . Db::in($ids), array_merge([$to, $from], $ids));
+            foreach ($ids as $id) $this->log($id, "handed over: $fromName → $toName" . ($note ? " ($note)" : ''));
+            Db::insert('task_handovers', ['company_id' => $this->cid, 'from_user' => $from, 'to_user' => $to, 'by_user' => $this->uid(),
+                'task_ids' => json_encode($ids), 'note' => $note, 'until_date' => $this->req->input('until_date') ?: null]);
+        });
+        Notifier::notify($this->cid, $to, 'task_assigned', count($ids) . " tasks handed over to you", "From $fromName" . ($note ? " · $note" : ''), null, null);
+        if ($from !== $this->uid()) Notifier::notify($this->cid, $from, 'task_assigned', 'Your tasks were handed over', "To $toName", null, null);
+        return ['moved' => count($ids), 'to' => $toName];
+    }
+
+    /** GET /tasks/handovers */
+    public function handovers(): array
+    {
+        $rows = Db::all('SELECT h.*, f.name AS from_name, t.name AS to_name, b.name AS by_name FROM task_handovers h
+                           JOIN users f ON f.id = h.from_user JOIN users t ON t.id = h.to_user JOIN users b ON b.id = h.by_user
+                          WHERE h.company_id = ? AND (? OR h.from_user = ? OR h.to_user = ?) ORDER BY h.id DESC LIMIT 50',
+            [$this->cid, $this->isManager() ? 1 : 0, $this->uid(), $this->uid()]);
+        foreach ($rows as &$r) { $r['task_count'] = count(json_decode($r['task_ids'], true) ?: []); unset($r['task_ids']); }
+        return $rows;
+    }
+
+    /** POST /tasks/handovers/{id}/return — give back the tasks that are still open */
+    public function handBack(): array
+    {
+        $h = Db::one('SELECT * FROM task_handovers WHERE id = ? AND company_id = ? AND returned_at IS NULL', [$this->param('id'), $this->cid]);
+        if (!$h) throw HttpError::notFound('Handover not found or already returned');
+        if (!in_array($this->uid(), [(int) $h['from_user'], (int) $h['to_user']], true) && !$this->isManager()) throw HttpError::forbidden();
+        $ids = json_decode($h['task_ids'], true) ?: [];
+        $open = $ids ? array_map('intval', array_column(Db::all("SELECT id FROM tasks WHERE assigned_to = ? AND status NOT IN ('done','cancelled') AND id IN " . Db::in($ids), array_merge([$h['to_user']], $ids)), 'id')) : [];
+        if ($open) {
+            Db::exec('UPDATE tasks SET assigned_to = ? WHERE id IN ' . Db::in($open), array_merge([$h['from_user']], $open));
+            foreach ($open as $id) $this->log($id, 'handed back');
+        }
+        Db::exec('UPDATE task_handovers SET returned_at = NOW() WHERE id = ?', [$h['id']]);
+        Notifier::notify($this->cid, (int) $h['from_user'], 'task_assigned', count($open) . ' tasks are back with you', null, null, null);
+        return ['returned' => count($open)];
     }
 
     /** POST /tasks/parse-voice {text} — turn a spoken sentence into a task draft */
