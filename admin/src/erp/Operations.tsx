@@ -120,6 +120,19 @@ function ReturnDrawer({ id, onClose }: { id: number; onClose: () => void }) {
   return (
     <Drawer title={`${r.return_no}`} onClose={onClose}>
       <div className="between"><span>{r.reason}</span><St s={r.status} /></div>
+      {r.reason_type && <div className="row" style={{ marginTop: 8, flexWrap: 'wrap' }}>
+        <span className="badge">Why: {r.reason_type.replace(/_/g, ' ')}</span>
+        {r.responsible && <span className="badge overdue">Responsible: {r.responsible.replace(/_/g, ' ')}{r.responsible_name ? ` — ${r.responsible_name}` : ''}</span>}
+      </div>}
+      {r.context && <div className="muted" style={{ marginTop: 8 }}>Bill {r.context.doc_no} ({d8(r.context.doc_date)}) · customer {r.context.customer} · billed by {r.context.billed_by ?? '—'} · delivered by {r.context.delivered_by ?? '—'}{r.context.vehicle ? ` (${r.context.vehicle})` : ''}</div>}
+      {r.files?.length > 0 && <div className="attach-list" style={{ marginTop: 10 }}>
+        {r.files.map((f: any) => {
+          const url = `/api/files/${f.id}?token=${localStorage.getItem('wt_token')}`;
+          return f.kind === 'voice' || (f.mime ?? '').startsWith('audio') ? <div key={f.id} className="attach-chip voice">🎤<audio controls preload="none" src={url} /></div>
+            : (f.mime ?? '').startsWith('video') ? <video key={f.id} controls preload="metadata" src={url} style={{ maxWidth: 260, borderRadius: 8 }} />
+            : <a key={f.id} className="attach-chip" href={url} target="_blank" rel="noreferrer"><img src={url} alt="" /></a>;
+        })}
+      </div>}
       <table className="t" style={{ marginTop: 10 }}><tbody>{r.items.map((i: any) => <tr key={i.id}><td>{i.product_name}</td><td>{qty(i.qty)} {i.unit}</td><td>{+i.restock ? 'Restock' : 'Damaged'}</td><td style={{ textAlign: 'right' }}>{rs(i.amount, 2)}</td></tr>)}</tbody></table>
       <div className="totals"><b>Total {rs(r.total)}</b></div>
       <ApprovalTrail rows={r.approvals} /><History rows={r.history} />

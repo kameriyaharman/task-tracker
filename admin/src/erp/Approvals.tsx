@@ -5,7 +5,7 @@ import { useAuth } from '../auth';
 import { Topbar } from '../Layout';
 import { useApi } from '../hooks';
 import { ErrorBox } from '../ui';
-import { DataTable, ReasonModal, St, Tabs, dt, rs, useAction, useMeta } from './common';
+import { DataTable, DecisionModal, St, Tabs, dt, rs, useAction, useMeta } from './common';
 
 const LINK: Record<string, string> = {
   purchase_order: '/erp/purchase/', grn: '/erp/grn/', sales_invoice: '/erp/sales/', vendor_payment: '/erp/accounts', expense: '/erp/expenses', sales_return: '/erp/returns', purchase_return: '/erp/returns',
@@ -16,7 +16,7 @@ export default function Approvals() {
   const { reload: reloadMeta } = useMeta();
   const [tab, setTab] = useState('pending');
   const { data, error, reload } = useApi<any>('/erp/approvals');
-  const [rejecting, setRejecting] = useState<any>(null);
+  const [deciding, setDeciding] = useState<{ r: any; approve: boolean } | null>(null);
   const a = useAction();
   const nav = useNavigate();
   const act = (id: number, approve: boolean, remarks?: string) => a.run(async () => {
@@ -39,7 +39,8 @@ export default function Approvals() {
           ['', (r) => (
             <div className="row">
               <button className="btn ok sm" disabled={a.busy} onClick={() => act(r.id, true)}>Approve</button>
-              <button className="btn danger sm" disabled={a.busy} onClick={() => setRejecting(r)}>Reject</button>
+              <button className="btn ghost sm" title="Approve with a note / voice" onClick={() => setDeciding({ r, approve: true })}>🎤</button>
+              <button className="btn danger sm" disabled={a.busy} onClick={() => setDeciding({ r, approve: false })}>Reject</button>
             </div>
           )],
         ]} />
@@ -48,10 +49,10 @@ export default function Approvals() {
           ['Document', (r) => <a className="link" onClick={() => open(r)}>{r.doc_label}</a>], ['Details', (r) => r.summary],
           ['Amount', (r) => (r.amount ? rs(r.amount) : '—'), 'r'], ['Result', (r) => <St s={r.status} />],
           ['By', (r) => <>{r.acted_by_name} <span className="muted">({r.approver_role === 'owner' ? 'Boss' : 'Manager'})</span><div className="muted">{dt(r.acted_at)}</div></>],
-          ['Remarks', (r) => r.remarks ?? ''],
+          ['Remarks', (r) => <>{r.remarks ?? ''}{r.voice_id ? <audio controls preload="none" style={{ height: 30, display: 'block' }} src={`/api/files/${r.voice_id}?token=${localStorage.getItem('wt_token')}`} /> : null}</>],
         ]} />
       )}
-      {rejecting && <ReasonModal title={`Reject · ${rejecting.summary}`} onClose={() => setRejecting(null)} onOk={(reason) => act(rejecting.id, false, reason)} />}
+      {deciding && <DecisionModal title={`${deciding.approve ? 'Approve' : 'Reject'} · ${deciding.r.summary}`} approve={deciding.approve} url={`/erp/approvals/${deciding.r.id}`} onClose={() => setDeciding(null)} onDone={() => { reload(); reloadMeta(); }} />}
     </>
   );
 }

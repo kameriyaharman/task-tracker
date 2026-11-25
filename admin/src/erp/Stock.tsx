@@ -6,6 +6,12 @@ import { useApi } from '../hooks';
 import { Drawer, ErrorBox, Field, Icon } from '../ui';
 import { DataTable, NoAccess, Select, Tabs, can, dt, qty, rs, useAction, useMeta, useProducts } from './common';
 
+/** What each stock movement means — "adjustment" = someone corrected the count by hand (with a reason). */
+const MOVE: Record<string, string> = {
+  opening: 'Opening stock', grn: 'Goods received (purchase)', sale: 'Sold (bill)', sales_return: 'Customer return', purchase_return: 'Returned to vendor',
+  transfer: 'Godown transfer', adjustment: 'Stock correction (by hand)',
+};
+
 export default function Stock() {
   const { meta } = useMeta();
   const [sp] = useSearchParams();
@@ -15,21 +21,31 @@ export default function Stock() {
   const [adjust, setAdjust] = useState<any>(null);
   const [transfer, setTransfer] = useState(false);
   const list = useApi<any[]>(view === 'ledger' ? null : '/erp/stock', { warehouse_id: wh, q, low: view === 'low' ? 1 : '' });
-  const ledger = useApi<any[]>(view === 'ledger' ? '/erp/stock/ledger' : null);
+  const [lt, setLt] = useState('');
+  const ledger = useApi<any[]>(view === 'ledger' ? '/erp/stock/ledger' : null, { q, ref_type: lt });
+  const products = useProducts();
   if (meta && !can(meta, 'inventory')) return <NoAccess />;
   const total = (list.data ?? []).reduce((s, r) => s + Number(r.value), 0);
   return (
     <>
       <Topbar title="Stock" search={q} onSearch={setQ}
         action={can(meta, 'inventory', true) ? <button className="btn ghost" onClick={() => setTransfer(true)}><Icon name="truck" /> Transfer between godowns</button> : undefined} />
+      <div className="task-search">
+        <input className="input" list="stock-items" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔍 Type or pick an item — e.g. cement, PPC, 43 grade" />
+        <datalist id="stock-items">{products.map((p) => <option key={p.id} value={p.name} />)}</datalist>
+        {view === 'ledger' && <select className="input" value={lt} onChange={(e) => setLt(e.target.value)}>
+          <option value="">All movements</option>{Object.entries(MOVE).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+        </select>}
+      </div>
       <div className="chips">
         <Tabs value={view} onChange={setView} tabs={[['all', 'All items'], ['low', 'Low stock'], ['ledger', 'Stock movements']]} />
         {view !== 'ledger' && <div style={{ marginLeft: 'auto', width: 200, marginBottom: 14 }}><Select value={wh} onChange={setWh} options={meta?.warehouses ?? []} placeholder="All godowns" /></div>}
       </div>
+      {view === 'ledger' && <p className="muted" style={{ marginTop: 0 }}>Every change in stock with the document behind it. <b>Stock correction</b> = someone changed the count by hand (Stock → click an item → Correct stock), with the reason and their name.</p>}
       {view === 'ledger' ? (
         <DataTable rows={ledger.data} cols={[
           ['When', (r) => dt(r.created_at)], ['Item', (r) => r.product_name], ['Godown', (r) => r.warehouse_name],
-          ['Type', (r) => r.ref_type.replace('_', ' ')], ['Note', (r) => r.note ?? ''],
+          ['Type', (r) => <>{MOVE[r.ref_type] ?? r.ref_type}{r.ref_no ? <div className="muted">{r.ref_no}</div> : null}</>], ['Note / reason', (r) => r.note ?? ''],
           ['Qty', (r) => <b style={{ color: Number(r.qty) < 0 ? 'var(--red)' : 'var(--green)' }}>{Number(r.qty) > 0 ? '+' : ''}{qty(r.qty)} {r.unit}</b>, 'r'], ['By', (r) => r.user_name ?? '—'],
         ]} />
       ) : (

@@ -547,7 +547,13 @@ final class TaskController extends Controller
         if ($t['approval_status'] !== 'pending') throw HttpError::badRequest('This request is already decided');
         if (!\App\Services\TaskRules::canApprove($this->user, $t['approver_id'] ? (int) $t['approver_id'] : null)) throw HttpError::forbidden('Only the approver or their deputy can decide');
         $note = trim((string) $this->req->input('note'));
-        if (!$ok && $note === '') throw HttpError::badRequest('Write a reason to reject');
+        $voice = $this->req->files['voice_note'] ?? null;
+        if ($voice && $note === '') $note = '🎤 Voice note';
+        if (!$ok && $note === '') throw HttpError::badRequest('Write or record a reason to reject');
+        if ($voice) {
+            $a = Upload::save($voice, $this->cid, $this->uid(), 'task', $t['id'], 'voice', $this->req->int('voice_duration'));
+            Db::exec('UPDATE attachments SET file_name = ? WHERE id = ?', [($ok ? 'Approval note' : 'Rejection reason') . ' — ' . $this->user['name'], $a['id']]);
+        }
         $behalf = ($t['approver_id'] && (int) $t['approver_id'] !== $this->uid()) ? ' (on behalf of ' . Db::value('SELECT name FROM users WHERE id = ?', [$t['approver_id']]) . ')' : '';
         Db::update('tasks', $t['id'], ['approval_status' => $ok ? 'none' : 'rejected', 'approved_by' => $this->uid(), 'approval_note' => mb_substr($note, 0, 250) ?: null]
             + ($ok ? [] : ['status' => 'cancelled']));

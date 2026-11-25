@@ -130,6 +130,7 @@ final class PurchaseController extends Base
     }
 
     /**
+     * Bill date cannot be in the future.
      * POST /erp/grns {po_id?, vendor_id, warehouse_id, bill_no, bill_date, bill_amount?, notes,
      *                 items:[{product_id, po_item_id?, qty (accepted), damaged_qty, rate}]}  + photos/bill files
      * Partial receipt is fine; damaged quantity is recorded but not added to stock.
@@ -137,6 +138,9 @@ final class PurchaseController extends Base
     public function grnStore(): array
     {
         $this->need('inventory', true);
+        $billDate = $this->req->input('bill_date') ?: date('Y-m-d');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $billDate) || $billDate > date('Y-m-d')) throw HttpError::badRequest('Bill date cannot be in the future (today is ' . date('d M Y') . ')');
+        if ($billDate < date('Y-m-d', strtotime('-1 year'))) throw HttpError::badRequest('Bill date is more than a year old — please check');
         $poId = $this->req->int('po_id');
         $po = null;
         if ($poId) {
@@ -166,7 +170,7 @@ final class PurchaseController extends Base
         $id = Db::tx(function () use ($po, $poId, $vendor, $lines, $sub, $tax, $total, $billAmount) {
             $id = Db::insert('grns', ['company_id' => $this->cid, 'grn_no' => DocNo::next($this->cid, 'GRN'), 'po_id' => $poId, 'vendor_id' => $vendor,
                 'warehouse_id' => $this->warehouse($this->req->int('warehouse_id') ?? ($po['warehouse_id'] ?? null)), 'bill_no' => $this->req->input('bill_no'),
-                'bill_date' => $this->req->input('bill_date') ?: date('Y-m-d'), 'subtotal' => $sub, 'tax' => $tax,
+                'bill_date' => $billDate, 'subtotal' => $sub, 'tax' => $tax,
                 'total' => $billAmount !== null && $billAmount !== '' ? round((float) $billAmount, 2) : $total,
                 'notes' => $this->req->input('notes'), 'created_by' => $this->uid()]);
             foreach ($lines as $l) {

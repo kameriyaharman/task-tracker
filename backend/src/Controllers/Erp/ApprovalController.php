@@ -22,7 +22,13 @@ final class ApprovalController extends Base
     /** POST /erp/approvals/{id} {approve: bool, remarks} */
     public function act(): array
     {
-        $result = Approvals::act($this->user, $this->param('id'), (bool) $this->req->input('approve'), $this->req->input('remarks'));
+        // reason can be typed and/or spoken (voice note) — a voice note alone is enough to reject
+        $voice = $this->req->files['voice_note'] ?? null;
+        $remarks = trim((string) $this->req->input('remarks'));
+        if ($voice && $remarks === '') $remarks = '🎤 Voice note';
+        $approve = filter_var($this->req->input('approve'), FILTER_VALIDATE_BOOLEAN);
+        $result = Approvals::act($this->user, $this->param('id'), $approve, $remarks ?: null);
+        if ($voice) \App\Services\Upload::save($voice, $this->cid, $this->uid(), 'approval', $this->param('id'), 'voice', $this->req->int('voice_duration'));
         return ['result' => $result];
     }
 

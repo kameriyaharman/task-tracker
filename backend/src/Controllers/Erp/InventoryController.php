@@ -83,8 +83,15 @@ final class InventoryController extends Base
         if ($f = $this->q('from')) { $where[] = 's.created_at >= ?'; $p[] = $f; }
         if ($t = $this->q('to')) { $where[] = 's.created_at < DATE_ADD(?, INTERVAL 1 DAY)'; $p[] = $t; }
         if ($rt = $this->q('ref_type')) { $where[] = 's.ref_type = ?'; $p[] = $rt; }
-        return Db::all('SELECT s.*, p.name AS product_name, p.unit, w.name AS warehouse_name, u.name AS user_name FROM stock_ledger s
+        if ($q = $this->q('q')) { $where[] = '(p.name LIKE ? OR p.sku LIKE ?)'; $p[] = "%$q%"; $p[] = "%$q%"; }
+        // the document behind each movement, so "adjustment / sale / transfer" can be traced
+        return Db::all("SELECT s.*, p.name AS product_name, p.unit, w.name AS warehouse_name, u.name AS user_name,
+                               CASE s.ref_type WHEN 'sale' THEN (SELECT doc_no FROM sales_docs WHERE id = s.ref_id)
+                                               WHEN 'grn' THEN (SELECT grn_no FROM grns WHERE id = s.ref_id)
+                                               WHEN 'sales_return' THEN (SELECT return_no FROM returns_docs WHERE id = s.ref_id)
+                                               WHEN 'purchase_return' THEN (SELECT return_no FROM returns_docs WHERE id = s.ref_id) END AS ref_no
+                          FROM stock_ledger s
                           JOIN products p ON p.id = s.product_id JOIN warehouses w ON w.id = s.warehouse_id LEFT JOIN users u ON u.id = s.created_by
-                         WHERE ' . implode(' AND ', $where) . ' ORDER BY s.id DESC LIMIT 1000', $p);
+                         WHERE " . implode(' AND ', $where) . ' ORDER BY s.id DESC LIMIT 1000', $p);
     }
 }

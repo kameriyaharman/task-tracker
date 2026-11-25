@@ -101,7 +101,9 @@ final class Approvals
 
     public static function history(int $cid, string $docType, int $docId): array
     {
-        return Db::all("SELECT a.*, u.name AS acted_by_name FROM approvals a LEFT JOIN users u ON u.id = a.acted_by
+        return Db::all("SELECT a.*, u.name AS acted_by_name,
+                                (SELECT f.id FROM attachments f WHERE f.entity_type = 'approval' AND f.entity_id = a.id ORDER BY f.id DESC LIMIT 1) AS voice_id
+                           FROM approvals a LEFT JOIN users u ON u.id = a.acted_by
                          WHERE a.company_id = ? AND a.doc_type = ? AND a.doc_id = ? ORDER BY a.id", [$cid, $docType, $docId]);
     }
 

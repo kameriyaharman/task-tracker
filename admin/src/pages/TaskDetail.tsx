@@ -4,6 +4,7 @@ import { useApi } from '../hooks';
 import { dueLabel, timeOf, dateOf } from '../format';
 import { Drawer, ErrorBox, Icon, Loading, Pri, TaskStatus } from '../ui';
 import TaskForm from './TaskForm';
+import { DecisionModal } from '../erp/common';
 
 /** WhatsApp share link — opens WhatsApp with the task text for the assignee. */
 export const waLink = (t: any) => {
@@ -104,7 +105,8 @@ export default function TaskDetail({ id, onClose, onChanged }: { id: number; onC
   const [editing, setEditing] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [step, setStep] = useState('');
-  const [note, setNote] = useState('');
+  const [note] = useState('');
+  const [decide, setDecide] = useState<boolean | null>(null);
 
   const act = async (path: string, body?: Record<string, unknown>, method = 'POST') => {
     setErr(null);
@@ -133,9 +135,9 @@ export default function TaskDetail({ id, onClose, onChanged }: { id: number; onC
               <b>Waiting for approval</b> <span className="muted">— requested by {t.assigner_name}, approver {t.approver_name}</span>
               {t.can_approve && (
                 <div className="row" style={{ marginTop: 8, flexWrap: 'wrap' }}>
-                  <input className="input" style={{ flex: 1, minWidth: 160 }} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (needed to reject)" />
                   <button className="btn ok sm" onClick={() => act(`/tasks/${t.id}/approve`, { note })}>Approve</button>
-                  <button className="btn danger sm" onClick={() => act(`/tasks/${t.id}/reject`, { note })}>Reject</button>
+                  <button className="btn ghost sm" onClick={() => setDecide(true)}>Approve with note / 🎤</button>
+                  <button className="btn danger sm" onClick={() => setDecide(false)}>Reject…</button>
                 </div>
               )}
             </div>
@@ -203,6 +205,8 @@ export default function TaskDetail({ id, onClose, onChanged }: { id: number; onC
             </div>
           )}
 
+          {decide !== null && <DecisionModal title={decide ? 'Approve task request' : 'Reject task request'} approve={decide} url={`/tasks/${t.id}/${decide ? 'approve' : 'reject'}`}
+            onClose={() => setDecide(null)} onDone={() => { api<any>(`/tasks/${t.id}`).then(setData); onChanged(); }} />}
           {completing && open && <CompleteBox t={t} onCancel={() => setCompleting(false)} onDone={(x) => { setData(x); setCompleting(false); onChanged(); }} />}
 
           {!completing && (

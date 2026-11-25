@@ -105,6 +105,57 @@ Db::pdo()->exec("CREATE TABLE IF NOT EXISTS kb_entries (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NULL,
   KEY idx_kb_src (source_type, source_id),
   FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+// v5 — client feedback 25 Nov: richer customer / vendor master, bill charges & customer approval, payments against a bill, returns with responsibility
+if (!$col('customers', 'price_type')) {
+    Db::pdo()->exec("ALTER TABLE customers ADD COLUMN price_type ENUM('retail','wholesale','contractor') NOT NULL DEFAULT 'retail'");
+    Db::exec("UPDATE customers SET price_type = type");
+    Db::pdo()->exec("ALTER TABLE customers MODIFY type VARCHAR(40) NOT NULL DEFAULT 'Retail Customer'");
+    Db::exec("UPDATE customers SET type = CASE type WHEN 'retail' THEN 'Retail Customer' WHEN 'wholesale' THEN 'Wholesale Customer' WHEN 'contractor' THEN 'Contractor' ELSE type END");
+}
+foreach (['customers', 'vendors'] as $tb) {
+    if (!$col($tb, 'code')) {
+        Db::pdo()->exec("ALTER TABLE $tb ADD COLUMN code VARCHAR(20) NULL, ADD COLUMN business_name VARCHAR(160) NULL, ADD COLUMN contacts TEXT NULL,
+            ADD COLUMN whatsapp VARCHAR(15) NULL, ADD COLUMN billing_address VARCHAR(255) NULL, ADD COLUMN pincode VARCHAR(10) NULL, ADD COLUMN state VARCHAR(60) NULL,
+            ADD COLUMN dob DATE NULL, ADD COLUMN anniversary DATE NULL, ADD COLUMN pan VARCHAR(12) NULL, ADD COLUMN notes VARCHAR(500) NULL");
+        // short numeric code per company so staff can type "24" to pick a party
+        foreach (Db::all('SELECT id FROM companies') as $c) {
+            $n = 0;
+            foreach (Db::all("SELECT id FROM $tb WHERE company_id = ? ORDER BY id", [$c['id']]) as $r) Db::exec("UPDATE $tb SET code = ? WHERE id = ?", [(string) ++$n, $r['id']]);
+        }
+    }
+}
+if (!$col('customers', 'sales_user_id')) Db::pdo()->exec('ALTER TABLE customers ADD COLUMN sales_user_id INT UNSIGNED NULL');
+if (!$col('vendors', 'bank_name')) {
+    Db::pdo()->exec('ALTER TABLE vendors ADD COLUMN bank_name VARCHAR(80) NULL, ADD COLUMN account_holder VARCHAR(120) NULL, ADD COLUMN account_no VARCHAR(30) NULL, ADD COLUMN ifsc VARCHAR(15) NULL, ADD COLUMN upi_id VARCHAR(80) NULL');
+}
+Db::pdo()->exec("CREATE TABLE IF NOT EXISTS customer_types (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, company_id INT UNSIGNED NOT NULL, name VARCHAR(40) NOT NULL,
+  price_type ENUM('retail','wholesale','contractor') NOT NULL DEFAULT 'retail', sort SMALLINT NOT NULL DEFAULT 0,
+  UNIQUE KEY uq_ctype (company_id, name), FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+foreach (Db::all('SELECT id FROM companies') as $c) {
+    if (Db::value('SELECT 1 FROM customer_types WHERE company_id = ?', [$c['id']])) continue;
+    foreach ([['Retail Customer', 'retail'], ['Wholesale Customer', 'wholesale'], ['Contractor', 'contractor'], ['Builder', 'contractor'], ['Dealer', 'wholesale'],
+              ['Architect', 'retail'], ['Individual', 'retail'], ['Corporate', 'wholesale']] as $i => [$n, $pt]) {
+        Db::insert('customer_types', ['company_id' => $c['id'], 'name' => $n, 'price_type' => $pt, 'sort' => $i]);
+    }
+}
+if (!$col('payments', 'grn_id')) {
+    Db::pdo()->exec("ALTER TABLE payments ADD COLUMN grn_id INT UNSIGNED NULL, ADD COLUMN po_id INT UNSIGNED NULL, ADD COLUMN settlement ENUM('part','full','advance','on_account') NULL");
+}
+if (!$col('sales_docs', 'charges')) {
+    Db::pdo()->exec("ALTER TABLE sales_docs ADD COLUMN charges TEXT NULL, ADD COLUMN charges_total DECIMAL(14,2) NOT NULL DEFAULT 0,
+        ADD COLUMN customer_address VARCHAR(255) NULL, ADD COLUMN billing_address VARCHAR(255) NULL, ADD COLUMN terms TEXT NULL,
+        ADD COLUMN share_token VARCHAR(40) NULL, ADD COLUMN customer_approval ENUM('none','sent','approved','changes') NOT NULL DEFAULT 'none',
+        ADD COLUMN customer_approved_at DATETIME NULL, ADD COLUMN customer_note VARCHAR(255) NULL, ADD UNIQUE KEY uq_share (share_token)");
+}
+if (!$col('returns_docs', 'reason_type')) {
+    Db::pdo()->exec('ALTER TABLE returns_docs ADD COLUMN reason_type VARCHAR(30) NULL, ADD COLUMN responsible VARCHAR(30) NULL, ADD COLUMN responsible_user_id INT UNSIGNED NULL');
+}
+// "sales_final" — who may finalise a bill (sales staff only make drafts). Give it to the accountant role by default.
+foreach (Db::all("SELECT id, perms FROM erp_roles WHERE name LIKE 'Accountant%'") as $r) {
+    $p = json_decode((string) $r['perms'], true) ?: [];
+    if (!isset($p['sales_final'])) { $p['sales_final'] = 'edit'; Db::exec('UPDATE erp_roles SET perms = ? WHERE id = ?', [json_encode($p), $r['id']]); }
+}
 echo "Schema OK\n";
 
 $code = strtoupper((string) (getenv('COMPANY_CODE') ?: 'KESHAV'));

@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { api } from '../lib/api';
+import { Pressable, Text } from 'react-native';
+import { api, form } from '../lib/api';
+import { mmss, useVoiceNote } from '../components/media';
 import { useAuth } from '../lib/auth';
 import { useApi } from '../lib/hooks';
 import { first } from '../lib/format';
@@ -12,9 +14,13 @@ export default function Approvals() {
   const { data, loading, reload } = useApi<any[]>('/requests', { box: 'approvals', status: 'pending' });
   const tasks = useApi<any>('/task-approvals');
   const [note, setNote] = useState<Record<number, string>>({});
+  const voice = useVoiceNote();
+  const [voiceFor, setVoiceFor] = useState<number | null>(null);
   const decideTask = async (id: number, ok: boolean) => {
     setBusy(id); setErr(null);
-    try { await api(`/tasks/${id}/${ok ? 'approve' : 'reject'}`, { body: { note: note[id] ?? '' } }); await tasks.reload(); } catch (e) { setErr((e as Error).message); } finally { setBusy(null); }
+    const v = voiceFor === id ? voice.file : null;
+    try { await api(`/tasks/${id}/${ok ? 'approve' : 'reject'}`, { body: form({ note: note[id] ?? '', voice_duration: v ? voice.seconds : undefined }, { voice_note: v }) }); setVoiceFor(null); await tasks.reload(); }
+    catch (e) { setErr((e as Error).message); } finally { setBusy(null); }
   };
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
@@ -32,7 +38,10 @@ export default function Approvals() {
           <T muted>📋 Task request · {first(tk.assigner_name)} → {first(tk.assignee_name)}</T>
           <T b style={{ marginTop: 4 }}>{+tk.is_emergency ? '🚨 ' : ''}{tk.title}</T>
           {tk.description ? <T muted>{tk.description}</T> : null}
-          <Input style={{ marginTop: 8 }} value={note[tk.id] ?? ''} onChangeText={(v) => setNote({ ...note, [tk.id]: v })} placeholder="Note (needed to reject)" />
+          <Input style={{ marginTop: 8 }} value={note[tk.id] ?? ''} onChangeText={(v) => setNote({ ...note, [tk.id]: v })} placeholder="Note — or record a voice note" />
+          <Pressable onPress={() => { setVoiceFor(tk.id); voice.recording ? voice.stop() : voice.start(); }} style={{ alignSelf: 'flex-start', paddingVertical: 7, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: C.line, marginBottom: 8 }}>
+            <Text>{voiceFor === tk.id && voice.recording ? `⏺ Stop ${mmss(voice.seconds)}` : voiceFor === tk.id && voice.file ? `🎤 Recorded ${mmss(voice.seconds)}` : '🎤 Voice note'}</Text>
+          </Pressable>
           <Row gap={10}>
             <Button small variant="danger" title={t('reject')} style={{ flex: 1 }} onPress={() => decideTask(tk.id, false)} disabled={busy === tk.id} />
             <Button small title={t('approve')} style={{ flex: 1 }} onPress={() => decideTask(tk.id, true)} loading={busy === tk.id} />

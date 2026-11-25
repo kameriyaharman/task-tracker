@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useApi } from '../hooks';
 import { toLocalInput } from '../format';
 import { Drawer, ErrorBox, Icon } from '../ui';
+import { useRecorder, mmss } from '../voice';
 
 const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const PRI: [string, string][] = [['low', 'Low'], ['medium', 'Medium'], ['high', 'High'], ['urgent', 'Urgent']];
@@ -23,40 +24,7 @@ function F({ label, error, children, id }: { label: string; error?: string; chil
   );
 }
 
-/** Mic recorder — records straight from the microphone (no file picker). */
-function useRecorder() {
-  const [rec, setRec] = useState<MediaRecorder | null>(null);
-  const [blob, setBlob] = useState<File | null>(null);
-  const [secs, setSecs] = useState(0);
-  const [err, setErr] = useState<string | null>(null);
-  const timer = useRef<number | undefined>(undefined);
-  const start = async () => {
-    setErr(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const type = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'].find((t) => (window as any).MediaRecorder?.isTypeSupported?.(t)) ?? '';
-      const r = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
-      const chunks: BlobPart[] = [];
-      r.ondataavailable = (e) => e.data.size && chunks.push(e.data);
-      r.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const mime = r.mimeType || type || 'audio/webm';
-        setBlob(new File(chunks, `voice-note.${mime.includes('mp4') ? 'm4a' : 'webm'}`, { type: mime.split(';')[0] }));
-        window.clearInterval(timer.current);
-        setRec(null);
-      };
-      r.start();
-      setSecs(0); setBlob(null); setRec(r);
-      timer.current = window.setInterval(() => setSecs((s) => s + 1), 1000);
-    } catch {
-      setErr('Microphone not allowed — allow mic access in the browser and try again');
-    }
-  };
-  useEffect(() => () => window.clearInterval(timer.current), []);
-  return { recording: !!rec, blob, secs, err, start, stop: () => rec?.stop(), clear: () => { setBlob(null); setSecs(0); } };
-}
 const ord = (n: number) => n + ([11, 12, 13].includes(n % 100) ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
-const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 /** "Delegate a task" drawer — template, voice note, checklist with owners, attachments, multiple assignees, repeat, proof. */
 export default function TaskForm({ onClose, onSaved, task }: { onClose: () => void; onSaved: () => void; task?: any }) {

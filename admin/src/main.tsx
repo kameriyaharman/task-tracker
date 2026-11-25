@@ -6,6 +6,8 @@ import 'leaflet/dist/leaflet.css';
 import { AuthProvider, useAuth } from './auth';
 import Layout, { erpNav } from './Layout';
 import Login from './pages/Login';
+import { PublicCard, PublicDoc } from './pages/Public';
+import Business from './erp/Business';
 import Dashboard from './pages/Dashboard';
 import Tasks from './pages/Tasks';
 import Recurring from './pages/Recurring';
@@ -44,6 +46,10 @@ function Home() {
 
 function Gate() {
   const { me, ready } = useAuth();
+  // public pages opened by customers from WhatsApp — no login
+  const path = window.location.pathname.replace(import.meta.env.BASE_URL.replace(/\/$/, ''), '');
+  const pub = path.match(/^\/(p|card)\/([a-f0-9]+)/);
+  if (pub) return pub[1] === 'p' ? <PublicDoc token={pub[2]} /> : <PublicCard token={pub[2]} />;
   if (!ready) return <Loading />;
   if (!me) return <Login />;
   return (
@@ -52,6 +58,7 @@ function Gate() {
       <Route element={<Layout />}>
         <Route path="erp" element={<BusinessDashboard />} />
         <Route path="erp/approvals" element={<Approvals />} />
+        <Route path="erp/business" element={<Business />} />
         <Route path="erp/masters" element={<Masters />} />
         <Route path="erp/masters/:tab" element={<Masters />} />
         <Route path="erp/purchase" element={<PurchaseList />} />

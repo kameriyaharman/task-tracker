@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api } from '../api';
+import { useRecorder, VoiceNote } from '../voice';
 import { useApi } from '../hooks';
 import { Badge, Drawer, Empty, ErrorBox, Icon } from '../ui';
 
@@ -203,7 +204,8 @@ export function ApprovalTrail({ rows }: { rows?: any[] }) {
       <h3>Approvals</h3>
       {rows.map((a) => (
         <div key={a.id} className="list-item between">
-          <span>Level {a.level} · {a.approver_role === 'owner' ? 'Boss' : 'Manager'}{a.remarks ? <span className="muted"> · {a.remarks}</span> : null}</span>
+          <span>Level {a.level} · {a.approver_role === 'owner' ? 'Boss' : 'Manager'}{a.remarks ? <span className="muted"> · {a.remarks}</span> : null}
+            {a.voice_id ? <audio controls preload="none" style={{ height: 30, verticalAlign: 'middle', marginLeft: 6 }} src={`/api/files/${a.voice_id}?token=${localStorage.getItem('wt_token')}`} /> : null}</span>
           <span><St s={a.status} /> {a.acted_by_name && <span className="muted">{a.acted_by_name} · {dt(a.acted_at)}</span>}</span>
         </div>
       ))}
@@ -295,5 +297,30 @@ export function ReportTable({ rows }: { rows: any[] }) {
         )}
       </table>
     </div>
+  );
+}
+
+/** Approve / reject with a typed note and / or a voice note (voice alone is enough to reject). */
+export function DecisionModal({ title, approve, onClose, onDone, url }: { title: string; approve: boolean; onClose: () => void; onDone: () => void; url: string }) {
+  const [r, setR] = useState('');
+  const rec = useRecorder();
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const go = async () => {
+    setBusy(true); setErr(null);
+    try {
+      const fd = new FormData();
+      fd.append('approve', approve ? '1' : '0'); fd.append('remarks', r); fd.append('note', r);
+      if (rec.blob) { fd.append('voice_note', rec.blob); fd.append('voice_duration', String(rec.secs)); }
+      await api(url, { body: fd }); onDone(); onClose();
+    } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
+  };
+  return (
+    <Drawer title={title} onClose={onClose} modal>
+      <ErrorBox msg={err} />
+      <textarea className="input" rows={3} value={r} onChange={(e) => setR(e.target.value)} placeholder={approve ? 'Note (optional)' : 'Reason — write it or record a voice note'} style={{ width: '100%' }} />
+      <div style={{ marginTop: 8 }}><VoiceNote rec={rec} label="Explain by voice" /></div>
+      <button className={`btn ${approve ? 'ok' : 'danger'}`} disabled={busy || rec.recording || (!approve && !r.trim() && !rec.blob)} onClick={go}>{approve ? 'Approve' : 'Reject'}</button>
+    </Drawer>
   );
 }

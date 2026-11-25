@@ -44,19 +44,44 @@ final class Ledger
         }
     }
 
-    /** Re-derive paid_amount for every bill of a party (after a reversal). */
+    /**
+     * Re-derive paid_amount for every bill of a party.
+     * Payments made against a specific bill go to that bill first; everything else (and any extra) settles
+     * old dues (opening balance) and then bills oldest-first.
+     */
     public static function reallocate(string $table, string $partyCol, int $cid, int $partyId): void
     {
         Db::exec("UPDATE $table SET paid_amount = 0 WHERE company_id = ? AND $partyCol = ?", [$cid, $partyId]);
-        if ($table === 'sales_docs') {
-            $paid = (float) Db::value("SELECT COALESCE(SUM(amount),0) FROM payments WHERE company_id = ? AND party_type = 'customer' AND party_id = ? AND direction = 'in' AND status = 'approved'", [$cid, $partyId])
-                  + (float) Db::value("SELECT COALESCE(SUM(total),0) FROM returns_docs WHERE company_id = ? AND type = 'sales' AND party_id = ? AND status = 'approved'", [$cid, $partyId]);
-        } else {
-            $paid = (float) Db::value("SELECT COALESCE(SUM(amount),0) FROM payments WHERE company_id = ? AND party_type = 'vendor' AND party_id = ? AND direction = 'out' AND status = 'approved'", [$cid, $partyId])
-                  + (float) Db::value("SELECT COALESCE(SUM(total),0) FROM returns_docs WHERE company_id = ? AND type = 'purchase' AND party_id = ? AND status = 'approved'", [$cid, $partyId]);
+        $isSales = $table === 'sales_docs';
+        $pays = Db::all('SELECT amount, ' . ($isSales ? 'invoice_id' : 'grn_id') . " AS bill FROM payments WHERE company_id = ? AND party_type = ? AND party_id = ? AND direction = ? AND status = 'approved' ORDER BY id",
+            [$cid, $isSales ? 'customer' : 'vendor', $partyId, $isSales ? 'in' : 'out']);
+        $pool = (float) Db::value("SELECT COALESCE(SUM(total),0) FROM returns_docs WHERE company_id = ? AND type = ? AND party_id = ? AND status = 'approved'", [$cid, $isSales ? 'sales' : 'purchase', $partyId]);
+        $where = $isSales ? "doc_type = 'invoice' AND status = 'final'" : "status = 'approved'";
+        foreach ($pays as $p) {
+            $amt = (float) $p['amount'];
+            if ($p['bill']) {
+                $b = Db::one("SELECT id, total, paid_amount FROM $table WHERE id = ? AND company_id = ? AND $partyCol = ? AND $where", [$p['bill'], $cid, $partyId]);
+                if ($b) {
+                    $take = min($amt, max(0, (float) $b['total'] - (float) $b['paid_amount']));
+                    if ($take > 0) Db::exec("UPDATE $table SET paid_amount = paid_amount + ? WHERE id = ?", [$take, $b['id']]);
+                    $amt -= $take;
+                }
+            }
+            $pool += $amt;
         }
         // Old dues (opening balance) are settled first, then bills oldest-first
-        $opening = (float) Db::value('SELECT opening_balance FROM ' . ($table === 'sales_docs' ? 'customers' : 'vendors') . ' WHERE id = ?', [$partyId]);
-        self::allocate($table, $partyCol, $cid, $partyId, $paid - max(0, $opening));
+        $opening = (float) Db::value('SELECT opening_balance FROM ' . ($isSales ? 'customers' : 'vendors') . ' WHERE id = ?', [$partyId]);
+        self::allocate($table, $partyCol, $cid, $partyId, $pool - max(0, $opening));
+    }
+
+    /** Unpaid bills of a party with balance and age (for "against which bill" + aging). */
+    public static function openBills(int $cid, string $party, int $partyId): array
+    {
+        return $party === 'customer'
+            ? Db::all("SELECT id, doc_no AS no, doc_date AS dt, due_date, total, paid_amount, ROUND(total - paid_amount, 2) AS due, DATEDIFF(CURDATE(), doc_date) AS age
+                         FROM sales_docs WHERE company_id = ? AND customer_id = ? AND doc_type = 'invoice' AND status = 'final' AND paid_amount < total - 0.5 ORDER BY doc_date, id", [$cid, $partyId])
+            : Db::all("SELECT g.id, COALESCE(g.bill_no, g.grn_no) AS no, g.grn_no, COALESCE(g.bill_date, DATE(g.created_at)) AS dt, g.due_date, g.total, g.paid_amount, ROUND(g.total - g.paid_amount, 2) AS due,
+                              DATEDIFF(CURDATE(), COALESCE(g.bill_date, DATE(g.created_at))) AS age, po.po_no, g.po_id
+                         FROM grns g LEFT JOIN purchase_orders po ON po.id = g.po_id WHERE g.company_id = ? AND g.vendor_id = ? AND g.status = 'approved' AND g.paid_amount < g.total - 0.5 ORDER BY dt, g.id", [$cid, $partyId]);
     }
 }

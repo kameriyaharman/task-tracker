@@ -15,6 +15,7 @@ export default function Masters() {
   const [q, setQ] = useState('');
   const [edit, setEdit] = useState<any>(null);
   const [importing, setImporting] = useState(false);
+  const [showPeople, setShowPeople] = useState(false);
   const entity = tab === 'setup' ? null : tab;
   const list = useApi<any[]>(entity ? `/erp/masters/${entity}` : null, { q, all: 1 });
   if (meta && !can(meta, 'masters') && !can(meta, 'sales') && !can(meta, 'purchase')) return <NoAccess />;
@@ -24,6 +25,7 @@ export default function Masters() {
       <Topbar title="Masters" search={q} onSearch={setQ}
         action={entity && w ? <div className="row">
           {entity === 'products' && <button className="btn ghost" onClick={() => setImporting(true)}><Icon name="download" /> Import</button>}
+          {entity === 'customers' && <button className="btn ghost" onClick={() => setShowPeople(!showPeople)}>👤 Sales persons</button>}
           <button className="btn" onClick={() => setEdit({})}><Icon name="plus" /> Add {entity.slice(0, -1)}</button>
         </div> : undefined} />
       <Tabs value={tab} onChange={(t) => nav(`/erp/masters/${t}`)} tabs={TABS} />
@@ -38,13 +40,18 @@ export default function Masters() {
         ]} />
       )}
       {(tab === 'customers' || tab === 'vendors') && (
+        <>
+        {tab === 'customers' && showPeople && <SalesPeople onDone={list.reload} />}
         <DataTable rows={list.data} onRow={setEdit} cols={[
-          ['Name', (r) => <><b style={{ fontWeight: 500, opacity: +r.is_active ? 1 : 0.5 }}>{r.name}</b><div className="muted">{[r.contact_person, r.city, r.gstin].filter(Boolean).join(' · ')}</div></>],
+          ['#', (r) => <b>{r.code ?? '—'}</b>],
+          ['Name', (r) => <><b style={{ fontWeight: 500, opacity: +r.is_active ? 1 : 0.5 }}>{r.business_name || r.name}</b><div className="muted">{[r.business_name ? r.name : null, r.contact_person, r.city, r.gstin].filter(Boolean).join(' · ')}</div></>],
           ['Mobile', (r) => r.mobile ?? '—'],
-          ...(tab === 'customers' ? [['Type', (r: any) => r.type] as [string, (r: any) => any], ['Credit limit', (r: any) => rs(r.credit_limit), 'r'] as [string, (r: any) => any, 'r']] : []),
+          ['Rating', (r) => <Rating r={r.rating} />],
+          ...(tab === 'customers' ? [['Type', (r: any) => r.type] as [string, (r: any) => any], ['Sales person', (r: any) => r.sales_user_name ?? '—'] as [string, (r: any) => any], ['Credit limit', (r: any) => rs(r.credit_limit), 'r'] as [string, (r: any) => any, 'r']] : []),
           ['Credit days', (r) => r.credit_days, 'r'],
           [tab === 'customers' ? 'They owe' : 'We owe', (r) => <b style={{ color: Number(r.outstanding) > 0 ? 'var(--red)' : undefined }}>{rs(r.outstanding)}</b>, 'r'],
         ]} />
+        </>
       )}
       {tab === 'setup' && <Setup />}
       {edit && entity === 'products' && <ProductForm p={edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); list.reload(); }} readOnly={!w} />}
@@ -54,8 +61,31 @@ export default function Masters() {
   );
 }
 
+/** Select with an "＋ Add new" option right there (category / brand). */
+function QuickAdd({ entity, value, onChange, options, onAdded }: { entity: string; value: any; onChange: (v: any) => void; options: any[]; onAdded: () => void }) {
+  const [adding, setAdding] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  if (adding !== null) return (
+    <div className="row" style={{ gap: 4 }}>
+      <input className="input" style={{ flex: 1 }} value={adding} onChange={(e) => setAdding(e.target.value)} placeholder={`New ${entity === 'brands' ? 'brand' : 'category'}`} autoFocus />
+      <button type="button" className="btn sm" disabled={!adding.trim()} onClick={async () => {
+        try { const r = await api<any>(`/erp/masters/${entity}`, { body: { name: adding.trim() } }); onAdded(); onChange(r.id); setAdding(null); } catch (e) { setErr((e as Error).message); }
+      }}>Add</button>
+      <button type="button" className="link" onClick={() => setAdding(null)}>✕</button>
+      {err && <small className="field-err">{err}</small>}
+    </div>
+  );
+  return (
+    <select value={value ?? ''} onChange={(e) => (e.target.value === '__add' ? setAdding('') : onChange(e.target.value))}>
+      <option value="">—</option>
+      {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+      <option value="__add">＋ Add new {entity === 'brands' ? 'brand' : 'category'}…</option>
+    </select>
+  );
+}
+
 function ProductForm({ p, onClose, onSaved, readOnly }: { p: any; onClose: () => void; onSaved: () => void; readOnly: boolean }) {
-  const { meta } = useMeta();
+  const { meta, reload: reloadMeta } = useMeta();
   const full = useApi<any>(p.id ? `/erp/masters/products/${p.id}` : null);
   const [f, setF] = useState<any>({ unit: 'Piece', gst_rate: 18, is_active: 1, purchase_price: 0, retail_price: 0, wholesale_price: 0, contractor_price: 0, min_stock: 0, ...p });
   const set = (k: string, v: any) => setF((s: any) => ({ ...s, [k]: v }));
@@ -72,8 +102,8 @@ function ProductForm({ p, onClose, onSaved, readOnly }: { p: any; onClose: () =>
       <fieldset disabled={readOnly} style={{ border: 0, padding: 0 }}>
         <Field label="Product name"><input value={f.name ?? ''} onChange={(e) => set('name', e.target.value)} placeholder="e.g. UltraTech OPC 53 Cement 50kg" /></Field>
         <div className="grid g2">
-          <Field label="Category"><Select value={f.category_id} onChange={(v) => set('category_id', v)} options={meta?.categories ?? []} /></Field>
-          <Field label="Brand"><Select value={f.brand_id} onChange={(v) => set('brand_id', v)} options={meta?.brands ?? []} /></Field>
+          <Field label="Category"><QuickAdd entity="categories" value={f.category_id} onChange={(v) => set('category_id', v)} options={meta?.categories ?? []} onAdded={reloadMeta} /></Field>
+          <Field label="Brand"><QuickAdd entity="brands" value={f.brand_id} onChange={(v) => set('brand_id', v)} options={meta?.brands ?? []} onAdded={reloadMeta} /></Field>
           <Field label="SKU / code"><input value={f.sku ?? ''} onChange={(e) => set('sku', e.target.value)} /></Field>
           <Field label="Barcode"><input value={f.barcode ?? ''} onChange={(e) => set('barcode', e.target.value)} placeholder="Scan here" /></Field>
           <Field label="Unit"><select value={f.unit} onChange={(e) => set('unit', e.target.value)}>{(meta?.units ?? []).map((u) => <option key={u}>{u}</option>)}</select></Field>
@@ -111,41 +141,161 @@ function ProductForm({ p, onClose, onSaved, readOnly }: { p: any; onClose: () =>
   );
 }
 
+const RATING_COLOR: Record<string, string> = { Platinum: '#5b6b8c', Gold: '#b8860b', Silver: '#7d7d7d', Regular: '#a99' };
+export const Rating = ({ r }: { r?: string }) => (r ? <span className="badge" style={{ color: RATING_COLOR[r] ?? undefined, borderColor: RATING_COLOR[r] ?? undefined }}>{r === 'Platinum' ? '💎 ' : r === 'Gold' ? '🥇 ' : r === 'Silver' ? '🥈 ' : ''}{r}</span> : null);
+
+/** Customer / vendor master — business details, contacts, addresses, wishes, PAN, bank details, documents. */
 function PartyForm({ kind, p, onClose, onSaved, readOnly }: { kind: 'customers' | 'vendors'; p: any; onClose: () => void; onSaved: () => void; readOnly: boolean }) {
   const { meta } = useMeta();
-  const [f, setF] = useState<any>({ type: 'retail', credit_days: kind === 'vendors' ? 30 : 0, credit_limit: 0, opening_balance: 0, is_active: 1, ...p });
+  const isC = kind === 'customers';
+  const full = useApi<any>(p.id ? `/erp/masters/${kind}/${p.id}` : null);
+  const types = useApi<any[]>(isC ? '/erp/customer-types' : null);
+  const [f, setF] = useState<any>({ type: 'Retail Customer', credit_days: isC ? 0 : 30, credit_limit: 0, opening_balance: 0, is_active: 1, ...p, contacts: p.contacts?.length ? p.contacts : [] });
   const set = (k: string, v: any) => setF((s: any) => ({ ...s, [k]: v }));
-  const st = useApi<any>(p.id ? `/erp/statement` : null, { party: kind === 'customers' ? 'customer' : 'vendor', id: p.id });
+  const st = useApi<any>(p.id ? `/erp/statement` : null, { party: isC ? 'customer' : 'vendor', id: p.id });
+  const [newType, setNewType] = useState<{ name: string; price_type: string } | null>(null);
+  const [docLabel, setDocLabel] = useState('GST certificate');
   const a = useAction();
   const save = () => a.run(async () => {
-    const keys = kind === 'customers'
-      ? ['name', 'type', 'mobile', 'email', 'gstin', 'address', 'city', 'credit_limit', 'credit_days', 'opening_balance', 'recovery_user_id', 'is_active']
-      : ['name', 'contact_person', 'mobile', 'email', 'gstin', 'address', 'city', 'credit_days', 'opening_balance', 'is_active'];
-    const body = Object.fromEntries(keys.filter((k) => k in f).map((k) => [k, f[k]]));
+    const common = ['code', 'name', 'business_name', 'contacts', 'mobile', 'whatsapp', 'email', 'gstin', 'pan', 'address', 'billing_address', 'city', 'state', 'pincode', 'dob', 'anniversary', 'credit_days', 'opening_balance', 'notes', 'is_active'];
+    const keys = isC ? [...common, 'type', 'credit_limit', 'recovery_user_id', 'sales_user_id'] : [...common, 'contact_person', 'bank_name', 'account_holder', 'account_no', 'ifsc', 'upi_id'];
+    const body = Object.fromEntries(keys.filter((k) => k in f).map((k) => [k, f[k] === '' ? null : f[k]]));
     if (p.id) await api(`/erp/masters/${kind}/${p.id}`, { method: 'PATCH', body }); else await api(`/erp/masters/${kind}`, { body });
     onSaved();
   });
+  const upload = (files: FileList | null) => files?.length && a.run(async () => {
+    const fd = new FormData(); Array.from(files).forEach((x) => fd.append('files[]', x)); fd.append('label', docLabel);
+    await api(`/erp/files/${isC ? 'customer' : 'vendor'}/${p.id}`, { body: fd }); full.reload();
+  });
+  const token = localStorage.getItem('wt_token');
+  const setContact = (i: number, k: string, v: string) => set('contacts', f.contacts.map((c: any, j: number) => (j === i ? { ...c, [k]: v } : c)));
+  const d = full.data;
   return (
-    <Drawer title={p.id ? f.name : `Add ${kind.slice(0, -1)}`} onClose={onClose}>
+    <Drawer title={p.id ? `${f.code ? `#${f.code} · ` : ''}${f.business_name || f.name}` : `Add ${isC ? 'customer' : 'vendor'}`} onClose={onClose} wide>
       <ErrorBox msg={a.err} />
-      <fieldset disabled={readOnly} style={{ border: 0, padding: 0 }}>
-        <Field label="Name"><input value={f.name ?? ''} onChange={(e) => set('name', e.target.value)} /></Field>
-        <div className="grid g2">
-          {kind === 'customers'
-            ? <Field label="Customer type (decides price)"><select value={f.type} onChange={(e) => set('type', e.target.value)}><option value="retail">Retail</option><option value="wholesale">Wholesale / shop</option><option value="contractor">Contractor</option></select></Field>
-            : <Field label="Contact person"><input value={f.contact_person ?? ''} onChange={(e) => set('contact_person', e.target.value)} /></Field>}
-          <Field label="Mobile"><input value={f.mobile ?? ''} onChange={(e) => set('mobile', e.target.value)} /></Field>
-          <Field label="GSTIN"><input value={f.gstin ?? ''} onChange={(e) => set('gstin', e.target.value.toUpperCase())} /></Field>
-          <Field label="City"><input value={f.city ?? ''} onChange={(e) => set('city', e.target.value)} /></Field>
-          {kind === 'customers' && <Field label="Credit limit (₹)"><input type="number" value={f.credit_limit} onChange={(e) => set('credit_limit', e.target.value)} /></Field>}
-          <Field label="Credit days"><input type="number" value={f.credit_days} onChange={(e) => set('credit_days', e.target.value)} /></Field>
-          <Field label={kind === 'customers' ? 'Old dues (opening balance)' : 'Opening balance we owe'}><input type="number" value={f.opening_balance} onChange={(e) => set('opening_balance', e.target.value)} /></Field>
-          {kind === 'customers' && <Field label="Recovery person"><Select value={f.recovery_user_id} onChange={(v) => set('recovery_user_id', v)} options={meta?.users ?? []} /></Field>}
+      {d && (
+        <div className="row" style={{ flexWrap: 'wrap', marginBottom: 10 }}>
+          <Rating r={d.rating} /><span className="muted">{isC ? 'Bought' : 'Supplied'} {rs(d.business_12m)} in last 12 months</span>
+          {d.dob_in_days !== null && d.dob_in_days <= 15 && <span className="badge">🎂 Birthday in {d.dob_in_days} days</span>}
+          {d.anniversary_in_days !== null && d.anniversary_in_days <= 15 && <span className="badge">💐 Anniversary in {d.anniversary_in_days} days</span>}
         </div>
-        <Field label="Address"><input value={f.address ?? ''} onChange={(e) => set('address', e.target.value)} /></Field>
+      )}
+      <fieldset disabled={readOnly} style={{ border: 0, padding: 0 }}>
+        <div className="grid g2">
+          <Field label="Business / firm name"><input value={f.business_name ?? ''} onChange={(e) => set('business_name', e.target.value)} placeholder={isC ? 'e.g. Sharma Builders' : 'e.g. UltraTech Dealer — Rewari'} /></Field>
+          <Field label="Owner / person name *"><input value={f.name ?? ''} onChange={(e) => set('name', e.target.value)} /></Field>
+        </div>
+        <Field label="Address"><input value={f.address ?? ''} onChange={(e) => set('address', e.target.value)} placeholder="Shop / site address" /></Field>
+        <div className="grid g3">
+          <Field label="City"><input value={f.city ?? ''} onChange={(e) => set('city', e.target.value)} /></Field>
+          <Field label="State"><input value={f.state ?? ''} onChange={(e) => set('state', e.target.value)} /></Field>
+          <Field label="PIN code"><input value={f.pincode ?? ''} onChange={(e) => set('pincode', e.target.value)} /></Field>
+        </div>
+        <Field label={`Billing address ${isC ? '(printed on the bill)' : ''}`}>
+          <input value={f.billing_address ?? ''} onChange={(e) => set('billing_address', e.target.value)} placeholder="Same as address if empty" />
+        </Field>
+        <div className="grid g3">
+          <Field label="Code (short ID)"><input value={f.code ?? ''} onChange={(e) => set('code', e.target.value)} placeholder="auto" /></Field>
+          <Field label="Mobile"><input value={f.mobile ?? ''} onChange={(e) => set('mobile', e.target.value)} /></Field>
+          <Field label="WhatsApp no."><input value={f.whatsapp ?? ''} onChange={(e) => set('whatsapp', e.target.value)} placeholder="same as mobile if empty" /></Field>
+          <Field label="Email"><input type="email" value={f.email ?? ''} onChange={(e) => set('email', e.target.value)} /></Field>
+          <Field label="GSTIN"><input value={f.gstin ?? ''} onChange={(e) => set('gstin', e.target.value.toUpperCase())} maxLength={15} /></Field>
+          <Field label="PAN (optional)"><input value={f.pan ?? ''} onChange={(e) => set('pan', e.target.value.toUpperCase())} maxLength={10} placeholder="ABCDE1234F" /></Field>
+          <Field label="Date of birth"><input type="date" value={f.dob ?? ''} onChange={(e) => set('dob', e.target.value)} /></Field>
+          <Field label="Anniversary"><input type="date" value={f.anniversary ?? ''} onChange={(e) => set('anniversary', e.target.value)} /></Field>
+          {isC && (
+            <Field label="Customer type (decides price)">
+              <div className="row" style={{ gap: 4 }}>
+                <select style={{ flex: 1 }} value={f.type} onChange={(e) => (e.target.value === '__add' ? setNewType({ name: '', price_type: 'retail' }) : set('type', e.target.value))}>
+                  {(types.data ?? []).map((t) => <option key={t.id} value={t.name}>{t.name} · {t.price_type} price</option>)}
+                  <option value="__add">＋ Add new type…</option>
+                </select>
+              </div>
+            </Field>
+          )}
+        </div>
+        {newType && (
+          <div className="card row" style={{ padding: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+            <input className="input" style={{ flex: 1, minWidth: 140 }} value={newType.name} onChange={(e) => setNewType({ ...newType, name: e.target.value })} placeholder="e.g. Plumber, Electrician" autoFocus />
+            <select className="input" style={{ width: 170 }} value={newType.price_type} onChange={(e) => setNewType({ ...newType, price_type: e.target.value })}>
+              <option value="retail">uses Retail price</option><option value="wholesale">uses Wholesale price</option><option value="contractor">uses Contractor price</option>
+            </select>
+            <button className="btn sm" disabled={!newType.name.trim()} onClick={() => a.run(async () => { await api('/erp/customer-types', { body: newType }); await types.reload(); set('type', newType.name.trim()); setNewType(null); })}>Add type</button>
+            <button className="link" onClick={() => setNewType(null)}>Cancel</button>
+          </div>
+        )}
+
+        <div className="field"><span>Contact persons</span>
+          {!isC && <input className="input" style={{ marginBottom: 6 }} value={f.contact_person ?? ''} onChange={(e) => set('contact_person', e.target.value)} placeholder="Main contact person" />}
+          {f.contacts.map((c: any, i: number) => (
+            <div key={i} className="row" style={{ marginBottom: 6, gap: 6 }}>
+              <input className="input" style={{ flex: 2 }} value={c.name} onChange={(e) => setContact(i, 'name', e.target.value)} placeholder="Name" />
+              <input className="input" style={{ flex: 2 }} value={c.mobile} onChange={(e) => setContact(i, 'mobile', e.target.value)} placeholder="Mobile" />
+              <input className="input" style={{ flex: 2 }} value={c.role ?? ''} onChange={(e) => setContact(i, 'role', e.target.value)} placeholder="Munshi / accounts / site" />
+              <button type="button" className="link" onClick={() => set('contacts', f.contacts.filter((_: any, j: number) => j !== i))}>✕</button>
+            </div>
+          ))}
+          <button type="button" className="btn ghost sm" onClick={() => set('contacts', [...f.contacts, { name: '', mobile: '', role: '' }])}>＋ Add contact / number</button>
+        </div>
+
+        <h3 style={{ marginTop: 14 }}>Credit & people</h3>
+        <div className="grid g3">
+          {isC && <Field label="Credit limit (₹)"><input type="number" value={f.credit_limit} onChange={(e) => set('credit_limit', e.target.value)} /></Field>}
+          <Field label="Credit days"><input type="number" value={f.credit_days} onChange={(e) => set('credit_days', e.target.value)} /></Field>
+          <Field label={isC ? 'Old dues (opening balance)' : 'Opening balance we owe'}><input type="number" value={f.opening_balance} onChange={(e) => set('opening_balance', e.target.value)} /></Field>
+          {isC && <Field label="Sales person"><Select value={f.sales_user_id} onChange={(v) => set('sales_user_id', v)} options={meta?.users ?? []} /></Field>}
+          {isC && <Field label="Recovery person"><Select value={f.recovery_user_id} onChange={(v) => set('recovery_user_id', v)} options={meta?.users ?? []} /></Field>}
+        </div>
+        {!isC && (
+          <>
+            <h3 style={{ marginTop: 14 }}>Bank details (for paying this vendor)</h3>
+            <div className="grid g3">
+              <Field label="Bank name"><input value={f.bank_name ?? ''} onChange={(e) => set('bank_name', e.target.value)} /></Field>
+              <Field label="Account holder"><input value={f.account_holder ?? ''} onChange={(e) => set('account_holder', e.target.value)} /></Field>
+              <Field label="Account no."><input value={f.account_no ?? ''} onChange={(e) => set('account_no', e.target.value)} /></Field>
+              <Field label="IFSC"><input value={f.ifsc ?? ''} onChange={(e) => set('ifsc', e.target.value.toUpperCase())} maxLength={11} placeholder="SBIN0001234" /></Field>
+              <Field label="UPI ID"><input value={f.upi_id ?? ''} onChange={(e) => set('upi_id', e.target.value)} placeholder="name@bank" /></Field>
+            </div>
+          </>
+        )}
+        <Field label="Notes"><input value={f.notes ?? ''} onChange={(e) => set('notes', e.target.value)} /></Field>
         {p.id && <label className="check"><input type="checkbox" checked={!!+f.is_active} onChange={(e) => set('is_active', e.target.checked ? 1 : 0)} /> Active</label>}
         {!readOnly && <button className="btn" disabled={!f.name || a.busy} onClick={save}>Save</button>}
       </fieldset>
+
+      <div className="card" style={{ marginTop: 12 }}>
+        <h3>Documents (GST certificate, visiting card{isC ? '' : ', blank cheque'}…)</h3>
+        {!p.id ? <p className="muted">Save first, then attach documents.</p> : (
+          <>
+            {(d?.files ?? []).map((x: any) => (
+              <div key={x.id} className="list-item between">
+                <a href={`/api/files/${x.id}?token=${token}`} target="_blank" rel="noreferrer">📄 {x.file_name}</a>
+                {!readOnly && <button className="link" onClick={() => confirm('Remove this document?') && a.run(async () => { await api(`/erp/files/${x.id}`, { method: 'DELETE' }); full.reload(); })}>Remove</button>}
+              </div>
+            ))}
+            {!readOnly && (
+              <div className="row" style={{ marginTop: 8, flexWrap: 'wrap' }}>
+                <select className="input" style={{ width: 190 }} value={docLabel} onChange={(e) => setDocLabel(e.target.value)}>
+                  {['GST certificate', 'Visiting card', 'PAN card', 'Aadhaar', ...(isC ? ['Agreement'] : ['Blank cheque', 'Bank proof', 'Price list']), 'Other'].map((x) => <option key={x}>{x}</option>)}
+                </select>
+                <label className="btn ghost sm" style={{ cursor: 'pointer' }}>📎 Attach<input type="file" hidden multiple accept="image/*,.pdf" onChange={(e) => { upload(e.target.files); e.target.value = ''; }} /></label>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {d?.bills?.length > 0 && (
+        <div className="card" style={{ marginTop: 12 }}>
+          <h3>Unpaid bills (balance & age)</h3>
+          {d.bills.map((b: any) => (
+            <div key={b.id} className="list-item between">
+              <span>{b.no}{b.po_no ? <span className="muted"> · PO {b.po_no}</span> : null} <span className="muted">· {b.dt}</span></span>
+              <span><b>{rs(b.due)}</b> <span className="muted">of {rs(b.total)}</span> <span className={`badge ${+b.age > 60 ? 'overdue' : ''}`}>{b.age} days</span></span>
+            </div>
+          ))}
+        </div>
+      )}
       {st.data && (
         <div className="card" style={{ marginTop: 12 }}>
           <h3 className="between">Ledger <span>Balance {rs(st.data.closing, 2)}</span></h3>
@@ -158,7 +308,36 @@ function PartyForm({ kind, p, onClose, onSaved, readOnly }: { kind: 'customers' 
           ))}
         </div>
       )}
+      <History rows={d?.history} />
     </Drawer>
+  );
+}
+
+/** Sales person handover: move all customers of one person to another (when someone leaves) + who handles how many. */
+function SalesPeople({ onDone }: { onDone: () => void }) {
+  const { meta } = useMeta();
+  const by = useApi<any[]>('/erp/masters/customers/by-person');
+  const [f, setF] = useState({ from_user: '', to_user: '', field: 'sales' });
+  const [msg, setMsg] = useState<string | null>(null);
+  const a = useAction();
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <ErrorBox msg={a.err} />
+      <h3>Customers by sales person</h3>
+      <div className="row" style={{ flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+        {(by.data ?? []).map((u) => <span key={u.id} className="chip">{u.name}{+u.is_active ? '' : ' (left)'} · <b>{u.customers}</b> · {rs(u.business_12m)}</span>)}
+        {!by.data?.length && <span className="muted">No customer has a sales person yet — set it in each customer.</span>}
+      </div>
+      <div className="row" style={{ flexWrap: 'wrap' }}>
+        <span>Move all customers of</span>
+        <div style={{ width: 170 }}><Select value={f.from_user} onChange={(v) => setF({ ...f, from_user: v })} options={meta?.users ?? []} /></div>
+        <span>to</span>
+        <div style={{ width: 170 }}><Select value={f.to_user} onChange={(v) => setF({ ...f, to_user: v })} options={meta?.users ?? []} /></div>
+        <select className="input" style={{ width: 150 }} value={f.field} onChange={(e) => setF({ ...f, field: e.target.value })}><option value="sales">as sales person</option><option value="recovery">as recovery person</option></select>
+        <button className="btn sm" disabled={!f.from_user || !f.to_user || a.busy} onClick={() => a.run(async () => { const r = await api<any>('/erp/masters/customers/reassign', { body: f }); setMsg(`${r.moved} customers moved`); by.reload(); onDone(); })}>Move</button>
+        {msg && <span className="ok-text">✓ {msg}</span>}
+      </div>
+    </div>
   );
 }
 

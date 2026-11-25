@@ -6,6 +6,8 @@ import { Kpi, rs, qty } from './common';
 
 export default function BusinessDashboard() {
   const { data: d, error } = useApi<any>('/erp/dashboard');
+  const wishes = useApi<any[]>('/erp/wishes', { days: 7 });
+  const profile = useApi<any>('/erp/business-profile');
   const max = d ? Math.max(1, ...d.trend.map((t: any) => Number(t.total))) : 1;
   return (
     <>
@@ -46,6 +48,21 @@ export default function BusinessDashboard() {
               )) : <div className="empty">No promises due today</div>}
             </div>
           </div>
+          {(wishes.data ?? []).length > 0 && (
+            <div className="card">
+              <h3>🎉 Wish this week — birthdays & anniversaries</h3>
+              {wishes.data!.map((w, i) => {
+                const num = String(w.phone ?? '').replace(/\D/g, '');
+                const text = `Dear ${w.name} ji, warm wishes on your ${w.occasion.toLowerCase()} from all of us at ${profile.data?.display_name ?? 'Keshav Home Solution'}! 🎉`;
+                return (
+                  <div key={i} className="list-item between">
+                    <span>{w.occasion === 'Birthday' ? '🎂' : '💐'} <b>{w.business_name || w.name}</b> <span className="muted">· {w.kind} · {w.occasion} {w.in_days === 0 ? 'today' : w.in_days === 1 ? 'tomorrow' : `in ${w.in_days} days`}</span></span>
+                    {num && <a className="btn ghost sm wa" href={`https://wa.me/${num.length === 10 ? '91' + num : num}?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">Send wishes</a>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
           <div className="card">
             <h3>Top products this month</h3>
             {d.top_products.length ? d.top_products.map((p: any) => (

@@ -152,7 +152,7 @@ export function GrnForm({ po, onClose, onSaved }: { po?: any; onClose: () => voi
         {!po && <Field label="Vendor"><Select value={f.vendor_id} onChange={(v) => setF({ ...f, vendor_id: v })} options={vendors.data ?? []} placeholder="Choose vendor" /></Field>}
         <Field label="Godown"><Select value={f.warehouse_id} onChange={(v) => setF({ ...f, warehouse_id: v })} options={meta?.warehouses ?? []} placeholder="Default" /></Field>
         <Field label="Vendor bill no."><input value={f.bill_no} onChange={(e) => setF({ ...f, bill_no: e.target.value })} /></Field>
-        <Field label="Bill date"><input type="date" value={f.bill_date} onChange={(e) => setF({ ...f, bill_date: e.target.value })} /></Field>
+        <Field label="Bill date"><input type="date" max={new Date().toISOString().slice(0, 10)} value={f.bill_date} onChange={(e) => setF({ ...f, bill_date: e.target.value })} /></Field>
         <Field label="Bill amount (if different)"><input type="number" value={f.bill_amount} onChange={(e) => setF({ ...f, bill_amount: e.target.value })} placeholder={rs(total)} /></Field>
         <Field label="Photos of material / bill"><input type="file" multiple accept="image/*,application/pdf" onChange={(e) => setPhotos(e.target.files)} /></Field>
       </div>
@@ -208,6 +208,10 @@ export function GrnDetail() {
   return (
     <>
       <Topbar title={`GRN ${g.grn_no}`} action={<button className="btn ghost" onClick={() => window.print()}><Icon name="print" /></button>} />
+      {g.status === 'pending_approval' && <div className="lock-note warn">⏳ Waiting for approval. Stock is added and the vendor bill is counted only after approval — the approver sees it in <a className="link" onClick={() => nav('/erp/approvals')}>Approvals</a>.</div>}
+      {g.status === 'approved' && !(g.approvals ?? []).length && <div className="lock-note ok">✅ Approved automatically — entered by the boss / manager, so no separate approval was needed. Stock has been added.</div>}
+      {g.status === 'approved' && (g.approvals ?? []).length > 0 && <div className="lock-note ok">✅ Approved — stock added and vendor bill counted.</div>}
+      {g.status === 'rejected' && <div className="lock-note warn">✖ Rejected — stock was not added.</div>}
       <div className="card doc">
         <div className="between"><div><h2 style={{ margin: 0 }}>{g.vendor_name}</h2><div className="muted">Bill {g.bill_no ?? '—'} · {d8(g.bill_date)}{g.po_no && <> · <a className="link" onClick={() => nav(`/erp/purchase/${g.po_id}`)}>{g.po_no}</a></>}</div></div><St s={g.status} /></div>
         <table className="t" style={{ marginTop: 12 }}>

@@ -154,7 +154,7 @@ foreach ([['Sharma Builders', 'contractor', '9812002001', '07AAQFS1111A1Z1', 'Se
           ['Agarwal Interiors', 'contractor', '9812002005', '07AAIFA5555E1Z5', 'Rajouri Garden', 120000, 30, 0],
           ['Ramesh Kumar', 'retail', '9812002006', null, 'Sector 7, Dwarka', 20000, 7, 0],
           ['Kapoor Residency (Site)', 'contractor', '9812002007', null, 'Bijwasan', 100000, 30, 68000]] as [$n, $t, $m, $g, $addr, $cl, $cd, $ob]) {
-    $cust[$n] = Db::insert('customers', ['company_id' => $cid, 'name' => $n, 'type' => $t, 'mobile' => $m, 'gstin' => $g, 'address' => $addr, 'city' => 'New Delhi',
+    $cust[$n] = Db::insert('customers', ['company_id' => $cid, 'name' => $n, 'type' => ['retail' => 'Retail Customer', 'wholesale' => 'Wholesale Customer', 'contractor' => 'Contractor'][$t] ?? $t, 'price_type' => $t, 'code' => (string) (count($cust ?? []) + 1), 'mobile' => $m, 'gstin' => $g, 'address' => $addr, 'city' => 'New Delhi',
         'credit_limit' => $cl, 'credit_days' => $cd, 'opening_balance' => $ob, 'recovery_user_id' => $uid('recovery')]);
 }
 $c = fn(string $prefix) => (int) current(array_filter($cust, fn($k) => str_starts_with($k, $prefix), ARRAY_FILTER_USE_KEY));
