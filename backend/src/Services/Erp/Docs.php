@@ -20,6 +20,7 @@ final class Docs
             'vendor_payment' => self::paymentApproved($cid, $id, $by),
             'expense' => self::expenseApproved($cid, $id, $by),
             'sales_return', 'purchase_return' => self::returnApproved($cid, $id, $by),
+            'trip' => self::tripApproved($cid, $id, $by),
             default => null,
         };
     }
@@ -27,7 +28,7 @@ final class Docs
     public static function onRejected(string $type, int $id, int $cid, int $by, string $reason): void
     {
         $map = ['purchase_order' => 'purchase_orders', 'grn' => 'grns', 'sales_invoice' => 'sales_docs', 'vendor_payment' => 'payments',
-                'expense' => 'expenses', 'sales_return' => 'returns_docs', 'purchase_return' => 'returns_docs'];
+                'expense' => 'expenses', 'sales_return' => 'returns_docs', 'purchase_return' => 'returns_docs', 'trip' => 'trips'];
         if (isset($map[$type])) Db::exec("UPDATE {$map[$type]} SET status = 'rejected' WHERE id = ? AND company_id = ?", [$id, $cid]);
     }
 
@@ -208,6 +209,14 @@ final class Docs
         Audit::log($cid, $by, 'expense', $id, 'approved');
         Tally::enqueue($cid, 'expense', $id, 'Payment');
         Workflow::fire($cid, 'expense.approved', 'expense', $id, "Expense {$e['exp_no']} · {$e['category']}", ['amount' => (float) $e['amount'], 'creator_id' => (int) $e['created_by']]);
+    }
+
+    public static function tripApproved(int $cid, int $id, int $by): void
+    {
+        Db::update('trips', $id, ['status' => 'approved'], $cid);
+        $t = Db::one('SELECT * FROM trips WHERE id = ?', [$id]);
+        Audit::log($cid, $by, 'trip', $id, 'approved');
+        \App\Services\Notifier::notify($cid, (int) $t['user_id'], 'approval_done', "Trip approved: {$t['destination']}", 'Budget ₹' . number_format((float) $t['budget_total']) . ' — add expenses with bills against this trip', null, null);
     }
 
     // ───────── Returns ─────────

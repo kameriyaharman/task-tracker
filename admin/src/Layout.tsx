@@ -15,7 +15,7 @@ export const erpNav: { group: string; items: NavItem[] }[] = [
   { group: 'CONTROL', items: [['/erp/approvals', 'Approvals', 'check', 'boss_or_manager'], ['/erp/workflows', 'Workflows', 'flow', 'boss_or_manager'], ['/erp/access', 'Roles & approval rules', 'shield', 'boss_or_manager'], ['/erp/reports', 'Business reports', 'chart', 'reports'], ['/erp/tally', 'Tally sync', 'sync', 'tally'], ['/erp/business', 'Business profile & card', 'tag', 'boss_or_manager']] },
 ];
 const nav: { group: string; items: NavItem[] }[] = [
-  { group: 'WORK', items: [['/', 'Dashboard', 'dashboard'], ['/tasks', 'Tasks', 'tasks'], ['/recurring', 'Recurring tasks', 'repeat'], ['/templates', 'Task rules & templates', 'tasks'], ['/knowledge', 'Knowledge base', 'goal'], ['/goals', 'Goals', 'goal'], ['/campaigns', 'Campaigns', 'megaphone']] },
+  { group: 'WORK', items: [['/', 'Dashboard', 'dashboard'], ['/tasks', 'Tasks', 'tasks'], ['/recurring', 'Recurring tasks', 'repeat'], ['/templates', 'Task rules & templates', 'tasks'], ['/knowledge', 'Knowledge base', 'goal'], ['/goals', 'Goals', 'goal'], ['/marketing', 'Marketing & field sales', 'pin'], ['/campaigns', 'Campaigns', 'megaphone']] },
   { group: 'PEOPLE', items: [['/employees', 'Employees', 'users'], ['/attendance', 'Attendance & timesheets', 'clock'], ['/leave', 'Leave', 'calendar'], ['/location', 'Live location', 'pin'], ['/performance', 'Performance & rewards', 'trophy']] },
   { group: 'INSIGHTS', items: [['/reports', 'Reports', 'chart'], ['/settings', 'Settings', 'settings']] },
 ];

@@ -326,3 +326,10 @@ tr.sel td { background: var(--gold-soft) !important; }
 .vc-row { display: grid; grid-template-columns: 100px 1fr; gap: 10px; padding: 11px 18px; border-bottom: 1px solid #f6efe5; font-size: 13.5px; } .vc-row b { color: #a8722c; font-size: 12px; }
 .vcard .pub-btn { margin: 14px 18px 18px; }
 @media print { .pub { background: #fff; padding: 0; } .pub-card { box-shadow: none; } .pub-box, .pub-btn { display: none !important; } }
+
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-h { font-size: 11px; color: var(--muted); text-align: center; }
+.cal-d { min-height: 74px; border: 1px solid var(--line); border-radius: 8px; padding: 4px; font-size: 11px; background: #fff; cursor: pointer; overflow: hidden; }
+.cal-d.sel { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold-soft); }
+.cal-plan { background: var(--gold-soft); border-radius: 4px; padding: 1px 4px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-v { color: #2c6e9b; margin-top: 2px; } .cal-r { color: var(--green); margin-top: 2px; }

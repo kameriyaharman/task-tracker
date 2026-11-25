@@ -156,6 +156,74 @@ foreach (Db::all("SELECT id, perms FROM erp_roles WHERE name LIKE 'Accountant%'"
     $p = json_decode((string) $r['perms'], true) ?: [];
     if (!isset($p['sales_final'])) { $p['sales_final'] = 'edit'; Db::exec('UPDATE erp_roles SET perms = ? WHERE id = ?', [json_encode($p), $r['id']]); }
 }
+// v6 — expenses like Zoho Expense (verify → approve, mileage, advances, trips) + marketing field work (plan, visits, daily report, targets)
+if (strpos($colType('expenses', 'status'), 'pending_verification') === false) {
+    Db::pdo()->exec("ALTER TABLE expenses MODIFY status ENUM('pending_verification','pending_approval','approved','rejected') NOT NULL DEFAULT 'pending_verification'");
+}
+if (!$col('expenses', 'kind')) {
+    Db::pdo()->exec("ALTER TABLE expenses ADD COLUMN kind ENUM('expense','mileage') NOT NULL DEFAULT 'expense', ADD COLUMN reimburse TINYINT(1) NOT NULL DEFAULT 1,
+        ADD COLUMN merchant VARCHAR(120) NULL, ADD COLUMN invoice_no VARCHAR(40) NULL, ADD COLUMN paid_to_type VARCHAR(20) NULL, ADD COLUMN paid_to_id INT UNSIGNED NULL,
+        ADD COLUMN trip_id INT UNSIGNED NULL, ADD COLUMN vehicle_id INT UNSIGNED NULL, ADD COLUMN km DECIMAL(8,1) NULL, ADD COLUMN rate_per_km DECIMAL(8,2) NULL,
+        ADD COLUMN odo_start INT UNSIGNED NULL, ADD COLUMN odo_end INT UNSIGNED NULL, ADD COLUMN gps_km DECIMAL(8,1) NULL,
+        ADD COLUMN verified_by INT UNSIGNED NULL, ADD COLUMN verified_at DATETIME NULL, ADD COLUMN verify_note VARCHAR(255) NULL, ADD KEY idx_exp_user (company_id, created_by)");
+    Db::exec("UPDATE expenses SET reimburse = 0"); // old expenses were paid by the shop
+}
+Db::pdo()->exec("CREATE TABLE IF NOT EXISTS expense_categories (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, company_id INT UNSIGNED NOT NULL, name VARCHAR(60) NOT NULL, sort SMALLINT NOT NULL DEFAULT 0,
+  UNIQUE KEY uq_expcat (company_id, name), FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+Db::pdo()->exec("CREATE TABLE IF NOT EXISTS vehicles (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, company_id INT UNSIGNED NOT NULL, user_id INT UNSIGNED NULL, name VARCHAR(80) NOT NULL,
+  type ENUM('bike','scooter','car','tempo','other') NOT NULL DEFAULT 'bike', reg_no VARCHAR(20) NULL, rate_per_km DECIMAL(8,2) NOT NULL DEFAULT 3,
+  is_active TINYINT(1) NOT NULL DEFAULT 1, FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+Db::pdo()->exec("CREATE TABLE IF NOT EXISTS advances (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, company_id INT UNSIGNED NOT NULL, adv_no VARCHAR(30) NOT NULL, user_id INT UNSIGNED NOT NULL,
+  type ENUM('advance','settlement','returned') NOT NULL DEFAULT 'advance', amount DECIMAL(14,2) NOT NULL, adv_date DATE NOT NULL,
+  mode ENUM('cash','upi','bank','card','cheque') NOT NULL DEFAULT 'cash', reference VARCHAR(80) NULL, trip_id INT UNSIGNED NULL, notes VARCHAR(255) NULL,
+  created_by INT UNSIGNED NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY idx_adv_user (company_id, user_id),
+  FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+Db::pdo()->exec("CREATE TABLE IF NOT EXISTS trips (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, company_id INT UNSIGNED NOT NULL, trip_no VARCHAR(30) NOT NULL, user_id INT UNSIGNED NOT NULL,
+  purpose VARCHAR(200) NOT NULL, destination VARCHAR(120) NOT NULL, from_date DATE NOT NULL, to_date DATE NOT NULL, budget TEXT NULL, budget_total DECIMAL(14,2) NOT NULL DEFAULT 0,
+  status ENUM('pending_approval','approved','rejected','completed','cancelled') NOT NULL DEFAULT 'pending_approval', notes VARCHAR(255) NULL,
+  created_by INT UNSIGNED NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+Db::pdo()->exec("CREATE TABLE IF NOT EXISTS field_plans (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, company_id INT UNSIGNED NOT NULL, user_id INT UNSIGNED NOT NULL, plan_date DATE NOT NULL,
+  area VARCHAR(160) NOT NULL, who_to_meet VARCHAR(255) NULL, target_amount DECIMAL(14,2) NULL, notes VARCHAR(255) NULL, created_by INT UNSIGNED NOT NULL,
+  KEY idx_plan (company_id, user_id, plan_date), FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+Db::pdo()->exec("CREATE TABLE IF NOT EXISTS field_visits (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, company_id INT UNSIGNED NOT NULL, user_id INT UNSIGNED NOT NULL, visit_date DATE NOT NULL, visited_at DATETIME NOT NULL,
+  party_name VARCHAR(160) NOT NULL, person VARCHAR(120) NULL, phone VARCHAR(15) NULL, address VARCHAR(255) NULL,
+  kind ENUM('contractor','house_owner','builder','company','dealer','architect','plumber_electrician','other') NOT NULL DEFAULT 'other',
+  expected_amount DECIMAL(14,2) NULL, outcome ENUM('interested','quotation','order','not_interested','follow_up') NOT NULL DEFAULT 'interested',
+  lat DECIMAL(10,7) NULL, lng DECIMAL(10,7) NULL, customer_id INT UNSIGNED NULL, notes VARCHAR(500) NULL,
+  KEY idx_visit (company_id, user_id, visit_date), FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+Db::pdo()->exec("CREATE TABLE IF NOT EXISTS field_daily (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, company_id INT UNSIGNED NOT NULL, user_id INT UNSIGNED NOT NULL, report_date DATE NOT NULL,
+  km_run DECIMAL(8,1) NULL, gps_km DECIMAL(8,1) NULL, orders_count SMALLINT NOT NULL DEFAULT 0, orders_amount DECIMAL(14,2) NOT NULL DEFAULT 0,
+  billed_amount DECIMAL(14,2) NOT NULL DEFAULT 0, self_rating TINYINT NULL, notes VARCHAR(500) NULL, submitted_at DATETIME NOT NULL,
+  UNIQUE KEY uq_daily (company_id, user_id, report_date), FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+Db::pdo()->exec("CREATE TABLE IF NOT EXISTS sales_targets (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, company_id INT UNSIGNED NOT NULL, user_id INT UNSIGNED NOT NULL, month CHAR(7) NOT NULL,
+  amount_target DECIMAL(14,2) NOT NULL DEFAULT 0, km_target INT NOT NULL DEFAULT 0, visits_target INT NOT NULL DEFAULT 0, category_targets TEXT NULL,
+  UNIQUE KEY uq_target (company_id, user_id, month), FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+foreach (Db::all('SELECT id FROM companies') as $c) {
+    if (!Db::value('SELECT 1 FROM expense_categories WHERE company_id = ?', [$c['id']])) {
+        foreach (['Fuel / mileage', 'Transport / freight', 'Labour', 'Food', 'Hotel / stay', 'Travel ticket (bus / train / air)', 'Local conveyance (auto / taxi)',
+                  'Electricity', 'Rent', 'Office expense', 'Stationery', 'Tea & refreshment', 'Shop maintenance', 'Telephone / internet', 'Courier', 'Packing material', 'Salary advance', 'Other'] as $i => $n) {
+            Db::insert('expense_categories', ['company_id' => $c['id'], 'name' => $n, 'sort' => $i]);
+        }
+    }
+    // expense approval: accounts verifies first, then the boss approves (was manager / manager+boss)
+    $er = Db::all("SELECT min_amount, levels FROM approval_rules WHERE company_id = ? AND doc_type = 'expense' ORDER BY min_amount", [$c['id']]);
+    if (count($er) === 2 && (float) $er[0]['min_amount'] == 0 && $er[0]['levels'] === 'manager' && (float) $er[1]['min_amount'] == 10000) {
+        Db::exec("DELETE FROM approval_rules WHERE company_id = ? AND doc_type = 'expense'", [$c['id']]);
+        Db::insert('approval_rules', ['company_id' => $c['id'], 'doc_type' => 'expense', 'min_amount' => 0, 'levels' => 'owner']);
+    }
+    if (!Db::value("SELECT 1 FROM approval_rules WHERE company_id = ? AND doc_type = 'trip'", [$c['id']])) {
+        Db::insert('approval_rules', ['company_id' => $c['id'], 'doc_type' => 'trip', 'min_amount' => 0, 'levels' => 'owner']);
+    }
+}
 echo "Schema OK\n";
 
 $code = strtoupper((string) (getenv('COMPANY_CODE') ?: 'KESHAV'));

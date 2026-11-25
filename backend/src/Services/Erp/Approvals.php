@@ -16,14 +16,14 @@ final class Approvals
     public const DOC_LABELS = [
         'purchase_order' => 'Purchase order', 'grn' => 'Goods receipt (GRN)', 'sales_invoice' => 'Sales invoice',
         'vendor_payment' => 'Vendor payment', 'expense' => 'Expense', 'sales_return' => 'Sales return',
-        'purchase_return' => 'Purchase return', 'stock_adjustment' => 'Stock adjustment',
+        'purchase_return' => 'Purchase return', 'stock_adjustment' => 'Stock adjustment', 'trip' => 'Trip (pre-approval)',
     ];
     /** Rule types an admin can configure (value = amount, except sales_discount = discount %). */
     public const RULE_TYPES = [
         'purchase_order' => 'Purchase order amount', 'grn' => 'GRN / purchase bill amount', 'vendor_payment' => 'Vendor payment amount',
         'expense' => 'Expense amount', 'sales_return' => 'Sales return amount', 'purchase_return' => 'Purchase return amount',
         'sales_discount' => 'Sales discount % (any line)', 'credit_limit' => 'Credit limit exceeded (amount over limit)',
-        'stock_adjustment' => 'Stock adjustment value',
+        'stock_adjustment' => 'Stock adjustment value', 'trip' => 'Trip budget',
     ];
 
     /** Which levels a value needs for one rule type: ['manager'=>bool,'owner'=>bool] */

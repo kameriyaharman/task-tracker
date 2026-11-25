@@ -162,46 +162,7 @@ function PurchaseReturnForm({ onClose, onSaved }: { onClose: () => void; onSaved
 }
 
 // ───────── Expenses ─────────
-export function Expenses() {
-  const { meta } = useMeta();
-  const [status, setStatus] = useState('');
-  const list = useApi<any>('/erp/expenses', { status });
-  const [f, setF] = useState<any>(null);
-  const a = useAction();
-  const save = () => a.run(async () => {
-    const fd = new FormData();
-    Object.entries(f).forEach(([k, v]) => k !== 'bills' && v != null && fd.append(k, String(v)));
-    Array.from((f.bills as FileList) ?? []).forEach((b) => fd.append('bills[]', b));
-    await api('/erp/expenses', { body: fd }); setF(null); list.reload();
-  });
-  const total = (list.data?.items ?? []).filter((e: any) => e.status === 'approved').reduce((s: number, e: any) => s + Number(e.amount), 0);
-  return (
-    <>
-      <Topbar title="Expenses" action={<button className="btn" onClick={() => setF({ category: list.data?.categories[0] ?? 'Other', amount: '', mode: 'cash', exp_date: new Date().toISOString().slice(0, 10), paid_to: '', notes: '' })}><Icon name="plus" /> Add expense</button>} />
-      <Tabs value={status} onChange={setStatus} tabs={[['', 'All'], ['pending_approval', 'Waiting approval'], ['approved', 'Approved'], ['rejected', 'Rejected']]} />
-      <DataTable rows={list.data?.items} cols={[
-        ['No.', (r) => r.exp_no], ['Date', (r) => d8(r.exp_date)], ['Category', (r) => r.category], ['Paid to', (r) => r.paid_to ?? ''], ['Mode', (r) => <St s={r.mode} />],
-        ['Bill', (r) => (Number(r.bills) ? '📎' : '')], ['Amount', (r) => rs(r.amount, 2), 'r'], ['Status', (r) => <St s={r.status} />], ['By', (r) => r.created_by_name],
-      ]} />
-      {can(meta, 'expenses') && <p className="muted" style={{ textAlign: 'right' }}>Approved in list: <b>{rs(total)}</b></p>}
-      {f && (
-        <Drawer title="Add expense" onClose={() => setF(null)} modal>
-          <ErrorBox msg={a.err} />
-          <div className="grid g2">
-            <Field label="Category"><select value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>{(list.data?.categories ?? []).map((c: string) => <option key={c}>{c}</option>)}</select></Field>
-            <Field label="Amount (₹)"><input type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></Field>
-            <Field label="Paid to"><input value={f.paid_to} onChange={(e) => setF({ ...f, paid_to: e.target.value })} /></Field>
-            <Field label="Mode"><select value={f.mode} onChange={(e) => setF({ ...f, mode: e.target.value })}><option value="cash">Cash</option><option value="upi">UPI</option><option value="bank">Bank</option></select></Field>
-            <Field label="Date"><input type="date" value={f.exp_date} onChange={(e) => setF({ ...f, exp_date: e.target.value })} /></Field>
-            <Field label="Bill photo"><input type="file" accept="image/*,application/pdf" multiple onChange={(e) => setF({ ...f, bills: e.target.files })} /></Field>
-          </div>
-          <Field label="Note"><input value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field>
-          <button className="btn" disabled={!(Number(f.amount) > 0) || a.busy} onClick={save}>Save</button>
-        </Drawer>
-      )}
-    </>
-  );
-}
+export { Expenses } from './Expenses';
 
 const CATS = ['Product defect', 'Short / wrong supply', 'Late delivery', 'Damaged in delivery', 'Billing / rate', 'Installation / service', 'Staff behaviour', 'Shop maintenance', 'Other'];
 const KB_CATS = ['Site work', 'Delivery', 'Products', 'Customers', 'Accounts', 'Stores', 'Sales', 'Safety', 'Other'];
