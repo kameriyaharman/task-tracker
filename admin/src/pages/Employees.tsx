@@ -25,7 +25,24 @@ export default function Employees() {
         {me?.role === 'owner' && <button className="btn ghost sm" style={{ marginLeft: 'auto' }} onClick={() => setDeptForm(true)}>Departments</button>}
       </div>
       {!data ? <Loading /> : (
-        <div className="card" style={{ padding: 6 }}>
+        <>
+        {/* phone: one compact card per person */}
+        <div className="emp-list">
+          {data.map((u) => (
+            <div key={u.id} className="emp-card" onClick={() => setEdit(u)} style={{ opacity: +u.is_active ? 1 : 0.5 }}>
+              <Person name={u.name} sub={u.designation} initials={u.initials} />
+              <div className="emp-meta">
+                <span>📞 {u.mobile}</span>
+                {u.department_name && <span>{u.department_name}</span>}
+                <Badge s={u.role === 'owner' ? 'scheduled' : u.role === 'manager' ? 'in_progress' : ''}>{u.role}</Badge>
+                {u.erp_role_name && <span className="badge">{u.erp_role_name}</span>}
+                {+u.location_consent ? <Badge s="present">📍 Shared</Badge> : null}
+              </div>
+              {u.manager_name && <small className="muted">Reports to {u.manager_name}</small>}
+            </div>
+          ))}
+        </div>
+        <div className="card emp-table" style={{ padding: 6 }}>
           {data.length ? (
             <table className="t">
               <thead><tr><th>Name</th><th>Mobile</th><th>Department</th><th>Reports to</th><th>Role</th><th>Showroom role</th><th>Location</th></tr></thead>
@@ -45,6 +62,7 @@ export default function Employees() {
             </table>
           ) : <Empty>No employees</Empty>}
         </div>
+        </>
       )}
       {edit && <EmployeeForm u={edit} people={data ?? []} depts={depts.data ?? []} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); reload(); }} />}
       {deptForm && <DeptForm depts={depts.data ?? []} heads={data ?? []} onClose={() => setDeptForm(false)} reload={depts.reload} />}
