@@ -31,6 +31,12 @@ final class PurchaseController extends Base
                         WHERE p.id = ? AND p.company_id = ?', [$this->param('id'), $this->cid]);
         if (!$po) throw HttpError::notFound();
         $po['items'] = $this->items('purchase_order_items', 'po_id', (int) $po['id']);
+        foreach ($po['items'] as &$it) {
+            // quantity already entered in GRNs that are still waiting for approval
+            $it['awaiting_qty'] = (float) Db::value("SELECT COALESCE(SUM(gi.qty + gi.damaged_qty),0) FROM grn_items gi JOIN grns g ON g.id = gi.grn_id WHERE gi.po_item_id = ? AND g.status = 'pending_approval'", [$it['id']]);
+            $it['pending_qty'] = max(0, (float) $it['qty'] - (float) $it['received_qty'] - $it['awaiting_qty']);
+        }
+        unset($it);
         $po['grns'] = Db::all('SELECT id, grn_no, status, total, created_at FROM grns WHERE po_id = ? ORDER BY id', [$po['id']]);
         $po['approvals'] = Approvals::history($this->cid, 'purchase_order', (int) $po['id']);
         $po['history'] = Audit::history($this->cid, 'purchase_order', (int) $po['id']);
@@ -139,7 +145,7 @@ final class PurchaseController extends Base
     {
         $this->need('inventory', true);
         $billDate = $this->req->input('bill_date') ?: date('Y-m-d');
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $billDate) || $billDate > date('Y-m-d')) throw HttpError::badRequest('Bill date cannot be in the future (today is ' . date('d M Y') . ')');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $billDate) || $billDate > date('Y-m-d')) throw HttpError::badRequest('Bill date cannot be in the future (today is ' . date('d-m-Y') . ')');
         if ($billDate < date('Y-m-d', strtotime('-1 year'))) throw HttpError::badRequest('Bill date is more than a year old — please check');
         $poId = $this->req->int('po_id');
         $po = null;
@@ -162,12 +168,17 @@ final class PurchaseController extends Base
                 $pending = (float) Db::value("SELECT COALESCE(SUM(gi.qty + gi.damaged_qty),0) FROM grn_items gi JOIN grns g ON g.id = gi.grn_id WHERE gi.po_item_id = ? AND g.status = 'pending_approval'", [$pi['id']]);
                 $left = (float) $pi['qty'] - (float) $pi['received_qty'] - $pending;
                 if ($l['qty'] + $l['damaged_qty'] > $left + 0.0005) {
-                    throw HttpError::badRequest('Receiving more than ordered for ' . Db::value('SELECT name FROM products WHERE id = ?', [$pi['product_id']]) . " (left: $left)");
+                    $name = Db::value('SELECT name FROM products WHERE id = ?', [$pi['product_id']]);
+                    $waiting = Db::value("SELECT GROUP_CONCAT(DISTINCT g.grn_no) FROM grn_items gi JOIN grns g ON g.id = gi.grn_id WHERE gi.po_item_id = ? AND g.status = 'pending_approval'", [$pi['id']]);
+                    $n = fn($x) => rtrim(rtrim(number_format((float) $x, 3, '.', ''), '0'), '.');
+                    throw HttpError::badRequest($waiting
+                        ? "$name: " . $n($pending) . " already entered in $waiting (waiting for approval). Only " . $n(max(0, $left)) . " more can be received — approve or reject $waiting first."
+                        : "$name: only " . $n(max(0, $left)) . " left to receive on this PO.");
                 }
             }
         }
         $billAmount = $this->req->input('bill_amount');
-        $id = Db::tx(function () use ($po, $poId, $vendor, $lines, $sub, $tax, $total, $billAmount) {
+        $id = Db::tx(function () use ($po, $poId, $vendor, $lines, $sub, $tax, $total, $billAmount, $billDate) {
             $id = Db::insert('grns', ['company_id' => $this->cid, 'grn_no' => DocNo::next($this->cid, 'GRN'), 'po_id' => $poId, 'vendor_id' => $vendor,
                 'warehouse_id' => $this->warehouse($this->req->int('warehouse_id') ?? ($po['warehouse_id'] ?? null)), 'bill_no' => $this->req->input('bill_no'),
                 'bill_date' => $billDate, 'subtotal' => $sub, 'tax' => $tax,

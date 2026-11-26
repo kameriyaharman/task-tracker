@@ -60,9 +60,42 @@ export async function stopTracking() {
   }
 }
 
-export async function currentPosition() {
+/**
+ * Current position that works indoors and on phones with location switched off:
+ * 1) asks for permission, 2) on Android pops the system "turn on location" dialog,
+ * 3) uses a recent last-known fix at once, 4) tries balanced (wifi/cell) then GPS with timeouts,
+ * 5) finally listens for a fix for up to 20 s.
+ */
+export async function currentPosition(): Promise<{ lat: number; lng: number; accuracy?: number }> {
   const p = await Location.requestForegroundPermissionsAsync();
-  if (p.status !== 'granted') throw new Error('Location permission is needed');
-  const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-  return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+  if (p.status !== 'granted') {
+    throw new Error(p.canAskAgain === false
+      ? 'Location permission is off. Open phone Settings → Apps → Keshav → Permissions → Location → Allow.'
+      : 'Location permission is needed — please tap Allow.');
+  }
+  let on = await Location.hasServicesEnabledAsync().catch(() => true);
+  if (!on) {
+    try { await Location.enableNetworkProviderAsync(); } catch { /* user said no */ }
+    on = await Location.hasServicesEnabledAsync().catch(() => true);
+    if (!on) throw new Error('Phone location (GPS) is OFF. Swipe down from the top and turn on Location, then tap Retry.');
+  }
+  const out = (l: Location.LocationObject) => ({ lat: l.coords.latitude, lng: l.coords.longitude, accuracy: l.coords.accuracy ?? undefined });
+  const recent = await Location.getLastKnownPositionAsync({ maxAge: 2 * 60 * 1000, requiredAccuracy: 300 }).catch(() => null);
+  if (recent) return out(recent);
+  const withTimeout = <X,>(pr: Promise<X>, ms: number) => Promise.race([pr, new Promise<null>((r) => setTimeout(() => r(null), ms))]);
+  for (const [acc, ms] of [[Location.Accuracy.Balanced, 8000], [Location.Accuracy.High, 12000]] as const) {
+    const l = await withTimeout(Location.getCurrentPositionAsync({ accuracy: acc }).catch(() => null), ms);
+    if (l) return out(l);
+  }
+  const watched = await new Promise<Location.LocationObject | null>((resolve) => {
+    let sub: Location.LocationSubscription | null = null;
+    const done = (l: Location.LocationObject | null) => { sub?.remove(); clearTimeout(timer); resolve(l); };
+    const timer = setTimeout(() => done(null), 20000);
+    Location.watchPositionAsync({ accuracy: Location.Accuracy.Balanced, timeInterval: 1000, distanceInterval: 0 }, (l) => done(l))
+      .then((s) => { sub = s; }).catch(() => done(null));
+  });
+  if (watched) return out(watched);
+  const old = await Location.getLastKnownPositionAsync({}).catch(() => null);
+  if (old) return out(old);
+  throw new Error('Could not get your location. Turn on Location (High accuracy), step near a window or outside, then tap Retry.');
 }

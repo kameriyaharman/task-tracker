@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, Switch, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { api, form, type UploadFile } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
@@ -48,7 +48,12 @@ export default function NewTask() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const nameOf = (id: number | null) => people.data?.find((x) => x.id === id)?.name ?? '';
-  const visible = (people.data ?? []).filter((x) => !dept || x.department_id === dept);
+  const visible = (people.data ?? []).filter((x) => !dept || Number(x.department_id) === dept);
+  const [who, setWho] = useState('');
+  const [showAll, setShowAll] = useState(false);
+  const matches = visible.filter((x) => !who || String(x.name).toLowerCase().includes(who.toLowerCase()));
+  const chosenFirst = [...matches.filter((x) => assignees.includes(x.id)), ...matches.filter((x) => !assignees.includes(x.id))];
+  const shown = showAll || who || dept ? chosenFirst : chosenFirst.slice(0, 8);
   useEffect(() => { if (!dueTouched && defaults.data) setDue(defaultDue(defaults.data.default_due_hours)); }, [defaults.data]); // eslint-disable-line
 
   const applyTemplate = (id: number) => {
@@ -134,11 +139,37 @@ export default function NewTask() {
         <Text>＋ {t('checklist')} item</Text>
       </Pressable>
 
-      <T muted style={{ marginBottom: 6 }}>Department</T>
-      <Chips items={[[0, 'All'], ...((depts.data ?? []).map((d) => [d.id, d.name]) as [number, string][])]} value={dept ?? 0} onChange={(v: number) => setDept(v || null)} />
-      {dept ? <Text onPress={() => setAssignees(Array.from(new Set([...assignees, ...visible.map((x) => x.id)])))} style={{ color: C.gold, fontWeight: '600', marginVertical: 8 }}>＋ Everyone in this department ({visible.length})</Text> : <View style={{ height: 10 }} />}
+      <T muted style={{ marginBottom: 6 }}>Department (optional — narrows the list)</T>
+      <Chips items={[[0, 'All'], ...((depts.data ?? []).map((d) => [Number(d.id), d.name]) as [number, string][])]} value={dept ?? 0} onChange={(v: number) => setDept(Number(v) || null)} />
 
-      <Select label={`${t('assign_to')} *`} error={errors.assignee} value={assignees.length ? assignees.map((id) => nameOf(id)).join(', ') : 'Tap to choose (one or more)'} onPress={() => { setErrors({ ...errors, assignee: '' }); setPicker('assignee'); }} />
+      <Card style={{ marginTop: 10, borderColor: errors.assignee ? C.red : C.line, borderWidth: 1 }}>
+        <Row style={{ justifyContent: 'space-between', marginBottom: 6 }}>
+          <T style={{ fontWeight: '700' }} color={errors.assignee ? C.red : C.text}>{t('assign_to')} * {assignees.length ? `· ${assignees.length} chosen` : ''}</T>
+          {dept && visible.length > 0 ? <Text onPress={() => setAssignees(Array.from(new Set([...assignees, ...visible.map((x) => x.id)])))} style={{ color: C.gold, fontWeight: '600' }}>＋ All {visible.length}</Text> : null}
+        </Row>
+        {errors.assignee ? <T color={C.red} size={12} style={{ marginBottom: 6 }}>Tick at least one person</T> : null}
+        {(people.data?.length ?? 0) > 8 && <TextInput value={who} onChangeText={setWho} placeholder="Search person…" placeholderTextColor={C.muted}
+          style={{ borderWidth: 1, borderColor: C.line, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 6, color: C.text }} />}
+        {people.loading && !people.data ? <T muted>Loading people…</T> : null}
+        {people.error ? <T color={C.red}>Could not load people — {String(people.error)}</T> : null}
+        {shown.map((x) => {
+          const on = assignees.includes(x.id);
+          return (
+            <Pressable key={x.id} onPress={() => { setErrors({ ...errors, assignee: '' }); setAssignees(on ? assignees.filter((a) => a !== x.id) : [...assignees, x.id]); }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9, borderTopWidth: 1, borderTopColor: '#F1E8DB' }}>
+              <View style={{ width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: on ? C.gold : C.line, backgroundColor: on ? C.gold : '#fff', alignItems: 'center', justifyContent: 'center' }}>
+                {on && <Text style={{ color: '#fff', fontWeight: '800' }}>✓</Text>}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, color: C.text }}>{x.name}{x.id === me?.id ? ' (me)' : ''}</Text>
+                <Text style={{ fontSize: 12, color: C.muted }}>{[x.designation, x.department_name].filter(Boolean).join(' · ')}</Text>
+              </View>
+            </Pressable>
+          );
+        })}
+        {people.data && !shown.length ? <T muted>No one {dept ? 'in this department' : 'found'}{dept ? ' — tap “All” above' : ''}</T> : null}
+        {matches.length > shown.length && <Text onPress={() => setShowAll(true)} style={{ color: C.gold, fontWeight: '600', paddingTop: 8 }}>Show all {matches.length}</Text>}
+      </Card>
       <Row gap={10}>
         <View style={{ flex: 1 }}><Select label={t('due')} error={errors.due} value={dueLabel(sqlDateTime(due), t)} onPress={() => setPicker('due')} /></View>
         <View style={{ flex: 1 }}><Select label={t('priority')} value={t(priority)} onPress={() => setPicker('priority')} /></View>

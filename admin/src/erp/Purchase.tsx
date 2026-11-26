@@ -1,3 +1,4 @@
+import { DateInput } from '../dateinput';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api';
@@ -49,7 +50,7 @@ function PoForm({ po, onClose, onSaved }: { po?: any; onClose: () => void; onSav
       <div className="grid g2">
         <Field label="Vendor"><Select value={f.vendor_id} onChange={(v) => setF({ ...f, vendor_id: v })} options={vendors.data ?? []} placeholder="Choose vendor" /></Field>
         <Field label="Deliver to"><Select value={f.warehouse_id} onChange={(v) => setF({ ...f, warehouse_id: v })} options={meta?.warehouses ?? []} placeholder="Default" /></Field>
-        <Field label="Expected by"><input type="date" value={f.expected_date} onChange={(e) => setF({ ...f, expected_date: e.target.value })} /></Field>
+        <Field label="Expected by"><DateInput value={f.expected_date} onChange={(e) => setF({ ...f, expected_date: e.target.value })} /></Field>
         <Field label="Notes"><input value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field>
       </div>
       <ItemsEditor lines={lines} setLines={setLines} products={products} priceKey="purchase_price" />
@@ -127,9 +128,10 @@ export function GrnForm({ po, onClose, onSaved }: { po?: any; onClose: () => voi
   const vendors = useList('vendors');
   const products = useProducts();
   const [f, setF] = useState<any>({ vendor_id: po?.vendor_id ?? '', warehouse_id: po?.warehouse_id ?? '', bill_no: '', bill_date: new Date().toISOString().slice(0, 10), bill_amount: '', notes: '' });
-  const [lines, setLines] = useState<Line[]>(po ? po.items.filter((i: any) => Number(i.qty) > Number(i.received_qty)).map((i: any) => ({
-    product_id: i.product_id, name: i.product_name, unit: i.unit, po_item_id: i.id, ordered: Number(i.qty) - Number(i.received_qty),
-    qty: Number(i.qty) - Number(i.received_qty), damaged_qty: 0, rate: Number(i.rate), gst_rate: Number(i.gst_rate),
+  const left = (i: any) => Number(i.pending_qty ?? Number(i.qty) - Number(i.received_qty));
+  const [lines, setLines] = useState<Line[]>(po ? po.items.filter((i: any) => left(i) > 0).map((i: any) => ({
+    product_id: i.product_id, name: i.product_name, unit: i.unit, po_item_id: i.id, ordered: left(i), awaiting: Number(i.awaiting_qty || 0),
+    qty: left(i), damaged_qty: 0, rate: Number(i.rate), gst_rate: Number(i.gst_rate),
   })) : []);
   const [photos, setPhotos] = useState<FileList | null>(null);
   const a = useAction();
@@ -152,7 +154,7 @@ export function GrnForm({ po, onClose, onSaved }: { po?: any; onClose: () => voi
         {!po && <Field label="Vendor"><Select value={f.vendor_id} onChange={(v) => setF({ ...f, vendor_id: v })} options={vendors.data ?? []} placeholder="Choose vendor" /></Field>}
         <Field label="Godown"><Select value={f.warehouse_id} onChange={(v) => setF({ ...f, warehouse_id: v })} options={meta?.warehouses ?? []} placeholder="Default" /></Field>
         <Field label="Vendor bill no."><input value={f.bill_no} onChange={(e) => setF({ ...f, bill_no: e.target.value })} /></Field>
-        <Field label="Bill date"><input type="date" max={new Date().toISOString().slice(0, 10)} value={f.bill_date} onChange={(e) => setF({ ...f, bill_date: e.target.value })} /></Field>
+        <Field label="Bill date"><DateInput max={new Date().toISOString().slice(0, 10)} value={f.bill_date} onChange={(e) => setF({ ...f, bill_date: e.target.value })} /></Field>
         <Field label="Bill amount (if different)"><input type="number" value={f.bill_amount} onChange={(e) => setF({ ...f, bill_amount: e.target.value })} placeholder={rs(total)} /></Field>
         <Field label="Photos of material / bill"><input type="file" multiple accept="image/*,application/pdf" onChange={(e) => setPhotos(e.target.files)} /></Field>
       </div>
@@ -161,9 +163,10 @@ export function GrnForm({ po, onClose, onSaved }: { po?: any; onClose: () => voi
           <table className="t items">
             <thead><tr><th>Item</th><th>Pending</th><th>Good qty received</th><th>Damaged</th><th>Rate</th></tr></thead>
             <tbody>{lines.map((l, i) => (
-              <tr key={i}><td>{l.name}</td><td>{qty(l.ordered)} {l.unit}</td>
+              <tr key={i}><td>{l.name}{(l as any).awaiting > 0 && <div className="muted" style={{ fontSize: 12 }}>{qty((l as any).awaiting)} already in a GRN waiting approval</div>}
+                  {Number(l.qty) + Number(l.damaged_qty) > Number(l.ordered) && <div style={{ color: 'var(--red, #c0392b)', fontSize: 12 }}>Good + damaged is more than pending</div>}</td><td>{qty(l.ordered)} {l.unit}</td>
                 <td><input type="number" min="0" step="any" value={l.qty} onChange={(e) => upd(i, 'qty', e.target.value)} style={{ width: 80 }} /></td>
-                <td><input type="number" min="0" step="any" value={l.damaged_qty} onChange={(e) => upd(i, 'damaged_qty', e.target.value)} style={{ width: 70 }} /></td>
+                <td><input type="number" min="0" step="any" value={l.damaged_qty} onChange={(e) => { const d = Number(e.target.value || 0); setLines(lines.map((x, j) => j === i ? { ...x, damaged_qty: e.target.value as any, qty: Math.max(0, Math.min(Number(x.qty), Number(x.ordered) - d)) } : x)); }} style={{ width: 70 }} /></td>
                 <td><input type="number" min="0" step="any" value={l.rate} onChange={(e) => upd(i, 'rate', e.target.value)} style={{ width: 90 }} /></td></tr>
             ))}</tbody>
           </table>

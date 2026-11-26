@@ -1,3 +1,4 @@
+import { dateOf } from '../lib/format';
 import { useState } from 'react';
 import { Text } from 'react-native';
 import { api } from '../lib/api';
@@ -44,7 +45,7 @@ export default function Handover() {
           <Card key={h.id} style={{ marginBottom: 8 }}>
             <T>{h.from_name.split(' ')[0]} → {h.to_name.split(' ')[0]} · {h.task_count} tasks</T>
             <Row style={{ justifyContent: 'space-between', marginTop: 4 }}>
-              <T muted>{h.created_at.slice(0, 10)}{h.note ? ` · ${h.note}` : ''}</T>
+              <T muted>{dateOf(h.created_at)}{h.note ? ` · ${h.note}` : ''}</T>
               {h.returned_at ? <T muted>returned</T> : (
                 <Text style={{ color: C.gold, fontWeight: '600' }} onPress={() => api<any>(`/tasks/handovers/${h.id}/return`, { body: {} }).then((r) => { setMsg(`✓ ${r.returned} tasks handed back`); hist.reload(); }).catch((e) => setErr(e.message))}>Hand back</Text>
               )}

@@ -48,7 +48,7 @@ final class WhatsApp
 
     public static function taskAssigned(array $task, array $assignee, string $byName): void
     {
-        $due = $task['due_at'] ? date('D j M, g:i A', strtotime($task['due_at'])) : 'No due date';
+        $due = $task['due_at'] ? date('D d-m-Y, g:i A', strtotime($task['due_at'])) : 'No due date';
         $text = "📌 New task from $byName\n{$task['title']}\n⏰ $due · " . ucfirst($task['priority'])
             . "\nReply 1 = Started · 2 = Done";
         self::send((int) $task['company_id'], $assignee, $text, (int) $task['id'],

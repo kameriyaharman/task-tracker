@@ -1,3 +1,5 @@
+import { DateInput } from '../dateinput';
+import { Select } from '../erp/common';
 import { useState } from 'react';
 import { api } from '../api';
 import { Topbar } from '../Layout';
@@ -67,10 +69,10 @@ function CampaignForm({ c, onClose, onSaved }: { c: any; onClose: () => void; on
       <Field label="Title"><input value={f.title} onChange={(e) => set('title', e.target.value)} /></Field>
       <div className="grid g2">
         <Field label="Channel"><select value={f.channel} onChange={(e) => set('channel', e.target.value)}>{['Instagram', 'Facebook', 'YouTube', 'WhatsApp', 'Email', 'Website', 'Print'].map((x) => <option key={x}>{x}</option>)}</select></Field>
-        <Field label="Owner"><select value={f.owner_id} onChange={(e) => set('owner_id', e.target.value)}><option value="">—</option>{people.data?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+        <Field label="Owner"><Select value={f.owner_id} onChange={(v) => set('owner_id', v)} options={people.data ?? []} /></Field>
         <Field label="Stage"><select value={f.stage} onChange={(e) => set('stage', e.target.value)}>{stages.map(([s, l]) => <option key={s} value={s}>{l}</option>)}</select></Field>
         <Field label="Sub-status"><input value={f.sub_status} onChange={(e) => set('sub_status', e.target.value)} placeholder="Draft, Editing…" /></Field>
-        <Field label="Go-live date"><input type="date" value={f.go_live_on} onChange={(e) => set('go_live_on', e.target.value)} /></Field>
+        <Field label="Go-live date"><DateInput value={f.go_live_on} onChange={(e) => set('go_live_on', e.target.value)} /></Field>
         <div />
         <Field label="Reach"><input type="number" value={f.reach} onChange={(e) => set('reach', e.target.value)} /></Field>
         <Field label="Leads"><input type="number" value={f.leads} onChange={(e) => set('leads', e.target.value)} /></Field>

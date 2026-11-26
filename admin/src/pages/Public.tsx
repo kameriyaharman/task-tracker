@@ -1,3 +1,4 @@
+import { dmy, dmyt } from '../format';
 import { useEffect, useState } from 'react';
 
 const API = (import.meta.env.VITE_API_URL as string) || '/api';
@@ -28,7 +29,7 @@ export function PublicDoc({ token }: { token: string }) {
       <div className="pub-card">
         <div className="pub-head">
           <div><h2>{b.display_name}</h2><div className="muted">{b.tagline}</div><div className="muted small">{[b.address, b.phone].filter(Boolean).join(' · ')}</div></div>
-          <div className="r"><b>{d.kind.toUpperCase()}</b><div>{d.doc_no}</div><div className="muted">{d.date}</div></div>
+          <div className="r"><b>{d.kind.toUpperCase()}</b><div>{d.doc_no}</div><div className="muted">{dmy(d.date)}</div></div>
         </div>
         <div className="muted" style={{ margin: '10px 0' }}>For <b style={{ color: '#2b1a10' }}>{d.party_name}</b>{d.party_address ? ` · ${d.party_address}` : ''}</div>
         <table className="pub-t">
@@ -47,7 +48,7 @@ export function PublicDoc({ token }: { token: string }) {
           {d.kind === 'Tax invoice' && <span>Paid {rs(d.paid)} · <b style={{ color: d.due > 0.5 ? '#c0392b' : '#1e8449' }}>Balance {rs(d.due)}</b></span>}
         </div>
 
-        {d.delivery && <div className="pub-note">🚚 Delivery: <b>{d.delivery.status}</b>{d.delivery.delivered_at ? ` on ${d.delivery.delivered_at.slice(0, 16)}` : ''}</div>}
+        {d.delivery && <div className="pub-note">🚚 Delivery: <b>{d.delivery.status}</b>{d.delivery.delivered_at ? ` on ${dmyt(d.delivery.delivered_at)}` : ''}</div>}
 
         {d.can_approve && (
           <div className="pub-box">
@@ -58,7 +59,7 @@ export function PublicDoc({ token }: { token: string }) {
             <button className="pub-btn" disabled={busy || !note.trim()} onClick={() => decide('changes')}>✏️ Ask for changes</button>
           </div>
         )}
-        {d.approval === 'approved' && d.kind !== 'Tax invoice' && <div className="pub-note ok">✅ You approved this on {String(d.approved_at).slice(0, 16)}. Thank you!</div>}
+        {d.approval === 'approved' && d.kind !== 'Tax invoice' && <div className="pub-note ok">✅ You approved this on {dmyt(d.approved_at)}. Thank you!</div>}
 
         {d.upi && (
           <div className="pub-box">

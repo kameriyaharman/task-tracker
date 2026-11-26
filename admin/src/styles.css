@@ -349,3 +349,16 @@ tr.sel td { background: var(--gold-soft) !important; }
   .emp-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 8px 0 4px; font-size: 12.5px; }
   .drawer { width: 100vw !important; max-width: 100vw !important; }
 }
+.pop-item.on { background: #F6EEE3; }
+.pop-item.sel { font-weight: 600; color: var(--walnut, #2B1A10); }
+.combo { padding-right: 26px !important; cursor: text; }
+.combo-caret { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #8a7a6c; font-size: 12px; }
+.dmy-wrap { position: relative; display: inline-flex; align-items: center; gap: 6px; width: 100%; }
+.dmy-wrap .dmy-text { flex: 1; min-width: 0; width: 100%; padding-right: 34px; }
+.dmy-wrap .dmy-text.bad { border-color: #c0392b !important; }
+.dmy-wrap.with-time .dmy-text { flex: 1.3; }
+.dmy-wrap .dmy-time { flex: 1; min-width: 0; }
+.dmy-btn { position: absolute; left: 0; margin-left: calc(100% - 32px); background: none; border: 0; cursor: pointer; font-size: 15px; padding: 4px; }
+.dmy-wrap.with-time .dmy-btn { margin-left: 0; left: auto; right: calc(43% + 2px); }
+.dmy-native { position: absolute; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0; }
+.dmy-err { position: absolute; left: 0; top: 100%; font-size: 11px; color: #c0392b; white-space: nowrap; }

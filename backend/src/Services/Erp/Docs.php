@@ -266,7 +266,7 @@ final class Docs
         if (!$f['promise_date']) return null;
         $assignee = (int) ($f['assigned_to'] ?: $by);
         $tid = Db::insert('tasks', ['company_id' => $cid, 'title' => mb_substr("Collect ₹" . number_format((float) $f['promise_amount']) . " from {$f['cname']} (promised)", 0, 200),
-            'description' => trim("Customer promised payment on " . date('j M', strtotime($f['promise_date'])) . ". Mobile: {$f['mobile']}. " . $f['note']),
+            'description' => trim("Customer promised payment on " . date('d-m-Y', strtotime($f['promise_date'])) . ". Mobile: {$f['mobile']}. " . $f['note']),
             'assigned_to' => $assignee, 'assigned_by' => $by, 'priority' => 'high', 'due_at' => $f['promise_date'] . ' 18:00:00', 'remind_before_min' => 240,
             'source' => 'erp', 'ref_type' => 'customer', 'ref_id' => $f['customer_id']]);
         Db::update('recovery_followups', $followupId, ['task_id' => $tid]);

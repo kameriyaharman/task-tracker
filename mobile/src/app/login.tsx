@@ -12,6 +12,7 @@ export default function Login() {
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
   const [sent, setSent] = useState<string | null>(null);
+  const [mode, setMode] = useState<'otp' | 'pin'>('otp');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const otpRef = useRef<React.ComponentRef<typeof TextInput>>(null);
@@ -19,7 +20,8 @@ export default function Login() {
   const request = async () => {
     setBusy(true); setErr(null);
     try {
-      const r = await api<{ masked: string }>('/auth/request-otp', { body: { mobile } });
+      const r = await api<{ masked: string; mode?: 'otp' | 'pin' }>('/auth/request-otp', { body: { mobile } });
+      setMode(r.mode === 'pin' ? 'pin' : 'otp');
       setSent(r.masked);
       setTimeout(() => otpRef.current?.focus(), 300);
     } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
@@ -45,7 +47,7 @@ export default function Login() {
 
         {sent ? (
           <>
-            <Text style={{ color: C.muted, marginVertical: 8 }}>{t('enter_otp')} {sent} · <Text style={{ color: C.gold }} onPress={() => { setSent(null); setOtp(''); }}>{t('change')}</Text></Text>
+             <Text style={{ color: C.muted, marginVertical: 8 }}>{mode === 'pin' ? `Enter your 4-digit app PIN · ${sent}` : `${t('enter_otp')} ${sent}`} · <Text style={{ color: C.gold }} onPress={() => { setSent(null); setOtp(''); }}>{t('change')}</Text></Text>
             <Pressable onPress={() => otpRef.current?.focus()} style={{ flexDirection: 'row', gap: 12, marginBottom: 18 }}>
               {[0, 1, 2, 3].map((i) => (
                 <View key={i} style={{ flex: 1, height: 58, borderRadius: 12, borderWidth: 1.5, borderColor: otp.length === i ? C.gold : C.line, alignItems: 'center', justifyContent: 'center' }}>
@@ -53,14 +55,16 @@ export default function Login() {
                 </View>
               ))}
             </Pressable>
-            <TextInput ref={otpRef} value={otp} keyboardType="number-pad" maxLength={4} textContentType="oneTimeCode" autoComplete="sms-otp"
+            <TextInput ref={otpRef} value={otp} keyboardType="number-pad" maxLength={4} textContentType={mode === 'pin' ? 'none' : 'oneTimeCode'} autoComplete={mode === 'pin' ? 'off' : 'sms-otp'} secureTextEntry={false}
               style={{ position: 'absolute', opacity: 0, height: 1, width: 1 }}
               onChangeText={(v) => { const d = v.replace(/\D/g, ''); setOtp(d); if (d.length === 4) verify(d); }} />
             <Button title={t('verify_login')} onPress={() => verify()} disabled={otp.length < 4} loading={busy} />
-            <Text style={{ textAlign: 'center', color: C.gold, marginTop: 14 }} onPress={request}>Resend OTP</Text>
+            {mode === 'pin'
+              ? <Text style={{ textAlign: 'center', color: C.muted, marginTop: 14 }}>Forgot PIN? Ask your admin to reset it.</Text>
+              : <Text style={{ textAlign: 'center', color: C.gold, marginTop: 14 }} onPress={request}>Resend OTP</Text>}
           </>
         ) : (
-          <Button title={t('send_otp')} onPress={request} disabled={mobile.replace(/\D/g, '').length < 10} loading={busy} style={{ marginTop: 8 }} />
+          <Button title="Next" onPress={request} disabled={mobile.replace(/\D/g, '').length < 10} loading={busy} style={{ marginTop: 8 }} />
         )}
         <Text style={{ textAlign: 'center', color: C.muted, marginTop: 24 }} onPress={() => router.push('/language')}>🌐 {t('language')}</Text>
       </KeyboardAvoidingView>

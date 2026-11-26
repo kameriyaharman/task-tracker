@@ -6,6 +6,7 @@ import { useApi } from '../../lib/hooks';
 import { takePhoto } from '../../components/media';
 import { Button, Card, Empty, ErrorText, Input, Loading, Row, Screen, T } from '../../components/ui';
 import { d8, qty, rs } from '../../lib/erp';
+import { C } from '../../lib/theme';
 
 /** Store incharge: receive material against an approved purchase order. */
 export default function ReceiveGoods() {
@@ -22,7 +23,10 @@ export default function ReceiveGoods() {
     try {
       const full = await api(`/erp/purchase-orders/${p.id}`);
       setPo(full);
-      setLines(full.items.filter((i: any) => Number(i.qty) > Number(i.received_qty)).map((i: any) => ({ ...i, pending: Number(i.qty) - Number(i.received_qty), got: String(Number(i.qty) - Number(i.received_qty)), bad: '0' })));
+      const left = (i: any) => Number(i.pending_qty ?? Number(i.qty) - Number(i.received_qty));
+      setLines(full.items.filter((i: any) => left(i) > 0).map((i: any) => ({ ...i, pending: left(i), got: String(left(i)), bad: '0' })));
+      const waiting = full.items.filter((i: any) => Number(i.awaiting_qty) > 0).length;
+      if (waiting && !full.items.some((i: any) => left(i) > 0)) setErr('Everything on this PO is already entered in a GRN that is waiting for approval. Approve it in Approvals.');
     } catch (e) { setErr((e as Error).message); }
   };
   const save = async () => {
@@ -63,11 +67,12 @@ export default function ReceiveGoods() {
       {lines.map((l, i) => (
         <Card key={l.id} style={{ marginTop: 10 }}>
           <T b>{l.product_name}</T>
-          <T muted size={12}>Pending {qty(l.pending)} {l.unit}</T>
+          <T muted size={12}>Pending {qty(l.pending)} {l.unit}{Number(l.awaiting_qty) > 0 ? ` · ${qty(l.awaiting_qty)} already in a GRN waiting approval` : ''}</T>
           <Row>
             <Input label="Good qty" keyboardType="numeric" value={l.got} onChangeText={(v) => setLines(lines.map((x, j) => (j === i ? { ...x, got: v } : x)))} style={{ flex: 1 }} />
-            <Input label="Damaged" keyboardType="numeric" value={l.bad} onChangeText={(v) => setLines(lines.map((x, j) => (j === i ? { ...x, bad: v } : x)))} style={{ flex: 1 }} />
+            <Input label="Damaged" keyboardType="numeric" value={l.bad} onChangeText={(v) => setLines(lines.map((x, j) => (j === i ? { ...x, bad: v, got: String(Math.max(0, Math.min(Number(x.got || 0), x.pending - Number(v || 0)))) } : x)))} style={{ flex: 1 }} />
           </Row>
+          {Number(l.got || 0) + Number(l.bad || 0) > l.pending && <T color={C.red} size={12}>Good + damaged ({qty(Number(l.got || 0) + Number(l.bad || 0))}) is more than pending ({qty(l.pending)})</T>}
         </Card>
       ))}
       <Input label="Vendor bill no." value={bill} onChangeText={setBill} style={{ marginTop: 10 }} />

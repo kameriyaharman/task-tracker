@@ -224,6 +224,9 @@ foreach (Db::all('SELECT id FROM companies') as $c) {
         Db::insert('approval_rules', ['company_id' => $c['id'], 'doc_type' => 'trip', 'min_amount' => 0, 'levels' => 'owner']);
     }
 }
+// v7 — app login PIN (works without an SMS provider)
+if (!$col('users', 'pin_hash')) Db::pdo()->exec('ALTER TABLE users ADD COLUMN pin_hash VARCHAR(255) NULL');
+if (!$col('users', 'pin_fails')) Db::pdo()->exec('ALTER TABLE users ADD COLUMN pin_fails TINYINT UNSIGNED NOT NULL DEFAULT 0, ADD COLUMN pin_locked_until DATETIME NULL');
 echo "Schema OK\n";
 
 $code = strtoupper((string) (getenv('COMPANY_CODE') ?: 'KESHAV'));

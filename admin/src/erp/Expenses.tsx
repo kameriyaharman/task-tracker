@@ -1,3 +1,4 @@
+import { DateInput } from '../dateinput';
 import { useState } from 'react';
 import { api } from '../api';
 import { useAuth } from '../auth';
@@ -80,7 +81,7 @@ function ExpenseForm({ kind, onClose, onSaved }: { kind: string; onClose: () => 
     <Drawer title={kind === 'mileage' ? 'Mileage claim (km)' : 'New expense'} onClose={onClose} wide>
       <ErrorBox msg={a.err} />
       <div className="grid g3">
-        <Field label="Date"><input type="date" max={new Date().toISOString().slice(0, 10)} value={f.exp_date} onChange={(e) => setF({ ...f, exp_date: e.target.value })} /></Field>
+        <Field label="Date"><DateInput max={new Date().toISOString().slice(0, 10)} value={f.exp_date} onChange={(e) => setF({ ...f, exp_date: e.target.value })} /></Field>
         {kind === 'mileage' ? (
           <>
             <Field label="Vehicle *"><select value={f.vehicle_id} onChange={(e) => setF({ ...f, vehicle_id: e.target.value })}><option value="">Choose</option>{(vehicles.data ?? []).filter((v) => +v.is_active).map((v) => <option key={v.id} value={v.id}>{v.name} {v.reg_no ? `· ${v.reg_no}` : ''} · ₹{Number(v.rate_per_km)}/km</option>)}</select></Field>
@@ -233,8 +234,8 @@ function Trips() {
           <Field label="Where"><input value={f.destination} onChange={(e) => setF({ ...f, destination: e.target.value })} placeholder="Jaipur" /></Field>
           <Field label="Purpose"><input value={f.purpose} onChange={(e) => setF({ ...f, purpose: e.target.value })} placeholder="Meet tile company / collect payment" /></Field>
           <div className="grid g2">
-            <Field label="From"><input type="date" value={f.from_date} onChange={(e) => setF({ ...f, from_date: e.target.value })} /></Field>
-            <Field label="To"><input type="date" value={f.to_date} onChange={(e) => setF({ ...f, to_date: e.target.value })} /></Field>
+            <Field label="From"><DateInput value={f.from_date} onChange={(e) => setF({ ...f, from_date: e.target.value })} /></Field>
+            <Field label="To"><DateInput value={f.to_date} onChange={(e) => setF({ ...f, to_date: e.target.value })} /></Field>
             {[['travel', 'Travel (bus / train / fuel)'], ['hotel', 'Hotel / stay'], ['food', 'Food'], ['local', 'Local auto / taxi'], ['other', 'Other']].map(([k, l]) => (
               <Field key={k} label={`${l} ₹`}><input type="number" value={f.budget[k]} onChange={(e) => setF({ ...f, budget: { ...f.budget, [k]: e.target.value } })} /></Field>
             ))}

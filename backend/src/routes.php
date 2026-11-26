@@ -134,6 +134,7 @@ $r->get('/reports/summary', [C\ReportController::class, 'summary'], 'manager');
 $r->get('/reports/export', [C\ReportController::class, 'export'], 'manager');
 $r->get('/employees', [C\EmployeeController::class, 'index']);
 $r->post('/employees', [C\EmployeeController::class, 'store'], 'manager');
+$r->post('/employees/pins', [C\EmployeeController::class, 'generatePins'], 'manager');
 $r->patch('/employees/{id}', [C\EmployeeController::class, 'update'], 'manager');
 $r->get('/departments', [C\EmployeeController::class, 'departments']);
 $r->post('/departments', [C\EmployeeController::class, 'saveDepartment'], 'owner');

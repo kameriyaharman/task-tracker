@@ -1,3 +1,4 @@
+import { DateInput } from '../dateinput';
 import { useState } from 'react';
 import { api } from '../api';
 import { Topbar } from '../Layout';
@@ -67,7 +68,7 @@ export function PaymentForm({ direction, partyId, amount, invoiceId, onClose, on
         <Field label="Amount (₹)"><input type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></Field>
         <Field label="Mode"><select value={f.mode} onChange={(e) => setF({ ...f, mode: e.target.value })}><option value="cash">Cash</option><option value="upi">UPI</option><option value="bank">Bank / NEFT</option><option value="cheque">Cheque</option><option value="card">Card</option></select></Field>
         <Field label="Reference (UTR / cheque no.)"><input value={f.reference} onChange={(e) => setF({ ...f, reference: e.target.value })} /></Field>
-        <Field label="Date"><input type="date" max={new Date().toISOString().slice(0, 10)} value={f.pay_date} onChange={(e) => setF({ ...f, pay_date: e.target.value })} /></Field>
+        <Field label="Date"><DateInput max={new Date().toISOString().slice(0, 10)} value={f.pay_date} onChange={(e) => setF({ ...f, pay_date: e.target.value })} /></Field>
       </div>
       {bill && Number(f.amount) > 0 && !err && <p className="muted">After this, {bill.no} balance: <b>{rs(Math.max(0, Number(bill.due) - Number(f.amount)), 2)}</b></p>}
       {err && <p className="field-err">{err}</p>}
@@ -138,8 +139,8 @@ export default function Accounts() {
         <>
           <div className="chips">
             <div className="seg" style={{ marginLeft: 0 }}>{['cash', 'bank'].map((b) => <button key={b} className={book.book === b ? 'on' : ''} onClick={() => setBook({ ...book, book: b })}>{b === 'cash' ? 'Cash book' : 'Bank / UPI book'}</button>)}</div>
-            <input type="date" className="input" value={book.from} onChange={(e) => setBook({ ...book, from: e.target.value })} />
-            <input type="date" className="input" value={book.to} onChange={(e) => setBook({ ...book, to: e.target.value })} />
+            <DateInput className="input" value={book.from} onChange={(e) => setBook({ ...book, from: e.target.value })} />
+            <DateInput className="input" value={book.to} onChange={(e) => setBook({ ...book, to: e.target.value })} />
           </div>
           {bk.data && (
             <>
@@ -195,7 +196,7 @@ export function Recovery() {
           <Field label="What happened?"><select value={f.outcome} onChange={(e) => setF({ ...f, outcome: e.target.value })}>
             <option value="called">Called / reminded</option><option value="promise">Promised to pay</option><option value="no_response">No response</option><option value="dispute">Dispute</option><option value="note">Note</option></select></Field>
           {f.outcome === 'promise' && <div className="grid g2">
-            <Field label="Will pay on"><input type="date" value={f.promise_date ?? ''} onChange={(e) => setF({ ...f, promise_date: e.target.value })} /></Field>
+            <Field label="Will pay on"><DateInput value={f.promise_date ?? ''} onChange={(e) => setF({ ...f, promise_date: e.target.value })} /></Field>
             <Field label="Amount"><input type="number" value={f.promise_amount ?? ''} onChange={(e) => setF({ ...f, promise_amount: e.target.value })} /></Field></div>}
           <Field label="Note"><input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} /></Field>
           {f.outcome === 'promise' && <p className="muted">A follow-up task is created for the promised date.</p>}

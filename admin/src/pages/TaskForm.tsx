@@ -1,3 +1,4 @@
+import { DateInput } from '../dateinput';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import { useAuth } from '../auth';
@@ -235,7 +236,7 @@ export default function TaskForm({ onClose, onSaved, task }: { onClose: () => vo
 
       <div className="grid g2">
         <F label="Due *" error={errors.due_at}>
-          <input type="datetime-local" value={f.due_at} onChange={(e) => { setDueTouched(true); set('due_at', e.target.value); }} />
+          <DateInput withTime value={f.due_at} onChange={(e) => { setDueTouched(true); set('due_at', e.target.value); }} />
           <div className="chips" style={{ margin: '6px 0 0' }}>
             {[['+4 h', plusHours(4)], ['Today 6 PM', todayAt(18)], ['Tomorrow 11 AM', todayAt(11, 1)]].map(([l, v]) => (
               <span key={l} className="chip sm" onClick={() => { setDueTouched(true); set('due_at', v); }}>{l}</span>
@@ -281,8 +282,8 @@ export default function TaskForm({ onClose, onSaved, task }: { onClose: () => vo
           <div className="grid g2">
             <F label="Time — from"><input type="time" value={repeat.start_time} onChange={(e) => setRepeat({ ...repeat, start_time: e.target.value })} /></F>
             <F label="Time — to (due)"><input type="time" value={repeat.due_time} onChange={(e) => setRepeat({ ...repeat, due_time: e.target.value })} /></F>
-            <F label="Start date"><input type="date" value={repeat.starts_on} onChange={(e) => setRepeat({ ...repeat, starts_on: e.target.value })} /></F>
-            <F label="End date (optional)"><input type="date" value={repeat.ends_on} onChange={(e) => setRepeat({ ...repeat, ends_on: e.target.value })} /></F>
+            <F label="Start date"><DateInput value={repeat.starts_on} onChange={(e) => setRepeat({ ...repeat, starts_on: e.target.value })} /></F>
+            <F label="End date (optional)"><DateInput value={repeat.ends_on} onChange={(e) => setRepeat({ ...repeat, ends_on: e.target.value })} /></F>
           </div>
           {errors.repeat && <small className="field-err">{errors.repeat}</small>}
         </div>

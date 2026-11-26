@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View,
   type TextInputProps, type StyleProp, type ViewStyle,
@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { C, R, SERIF, avatarColor, statusColor } from '../lib/theme';
-import { dueLabel, overdueLabel } from '../lib/format';
+import { dateOf, dueLabel, overdueLabel, ymd } from '../lib/format';
 import { useAuth } from '../lib/auth';
 import { notifyInputFocus, useKeyboardAwareScroll, useKeyboardHeight } from '../lib/keyboard';
 
@@ -91,6 +91,23 @@ export function Input({ label, style, error, ...p }: TextInputProps & { label?: 
       </View>
       {error ? <Text style={s.errHint}>{error}</Text> : null}
     </>
+  );
+}
+
+/** Date typed as DD-MM-YYYY; value / onChange use YYYY-MM-DD ('' while incomplete). */
+export function DateField({ label, value, onChange, style, error }: { label: string; value: string; onChange: (ymd: string) => void; style?: any; error?: string | null }) {
+  const [txt, setTxt] = useState(value ? dateOf(value) : '');
+  useEffect(() => { if (value && ymd(txt) !== value) setTxt(dateOf(value)); if (!value && ymd(txt)) setTxt(''); }, [value]); // eslint-disable-line
+  const bad = txt.length >= 8 && !ymd(txt);
+  return (
+    <Input label={`${label} (DD-MM-YYYY)`} value={txt} placeholder="DD-MM-YYYY" keyboardType="numbers-and-punctuation" maxLength={10} style={style}
+      error={error ?? (bad ? 'Write date as DD-MM-YYYY, e.g. 05-12-2026' : null)}
+      onChangeText={(v) => {
+        let x = v.replace(/[^\d-/.]/g, '');
+        if (/^\d{2}$/.test(x) && txt.length < x.length) x += '-';
+        else if (/^\d{2}-\d{2}$/.test(x) && txt.length < x.length) x += '-';
+        setTxt(x); onChange(ymd(x));
+      }} />
   );
 }
 

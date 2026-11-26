@@ -1,3 +1,4 @@
+import { DateInput } from '../dateinput';
 import { useState } from 'react';
 import { api } from '../api';
 import { useAuth } from '../auth';
@@ -97,7 +98,7 @@ function PolicyForm({ p, onClose, onSaved }: { p: any; onClose: () => void; onSa
       <h3 style={{ margin: '18px 0 8px', fontSize: 14 }}>Holidays</h3>
       {hol.map((h, i) => (
         <div key={i} className="grid g2" style={{ gap: 8, marginBottom: 6 }}>
-          <input className="input" type="date" value={h.holiday_date} onChange={(e) => { const n = hol.map((x, j) => (j === i ? { ...x, holiday_date: e.target.value } : x)); setHol(i === hol.length - 1 ? [...n, { holiday_date: '', name: '' }] : n); }} />
+          <DateInput className="input" value={h.holiday_date} onChange={(e) => { const n = hol.map((x, j) => (j === i ? { ...x, holiday_date: e.target.value } : x)); setHol(i === hol.length - 1 ? [...n, { holiday_date: '', name: '' }] : n); }} />
           <input className="input" value={h.name} placeholder="Diwali" onChange={(e) => setHol(hol.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />
         </div>
       ))}

@@ -1,3 +1,5 @@
+import { DateInput } from '../dateinput';
+import { dmy } from '../format';
 import { useState } from 'react';
 import { api } from '../api';
 import { Topbar } from '../Layout';
@@ -17,7 +19,7 @@ export default function Recurring() {
     const x = new Date(d);
     if (x.toDateString() === t.toDateString()) return 'Today';
     if (x.toDateString() === tm.toDateString()) return 'Tomorrow';
-    return x.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+    return `${x.toLocaleDateString('en-IN', { weekday: 'short' })} ${dmy(x)}`;
   };
 
   return (
@@ -91,8 +93,8 @@ function RecurringForm({ onClose, onSaved }: { onClose: () => void; onSaved: () 
       <div className="grid g2">
         <Field label="Time — from"><input type="time" value={f.start_time} onChange={(e) => set('start_time', e.target.value)} /></Field>
         <Field label="Time — to (due)"><input type="time" value={f.due_time} onChange={(e) => set('due_time', e.target.value)} /></Field>
-        <Field label="Start date"><input type="date" value={f.starts_on} onChange={(e) => set('starts_on', e.target.value)} /></Field>
-        <Field label="End date (optional)"><input type="date" value={f.ends_on} onChange={(e) => set('ends_on', e.target.value)} /></Field>
+        <Field label="Start date"><DateInput value={f.starts_on} onChange={(e) => set('starts_on', e.target.value)} /></Field>
+        <Field label="End date (optional)"><DateInput value={f.ends_on} onChange={(e) => set('ends_on', e.target.value)} /></Field>
         <Field label="Priority"><select value={f.priority} onChange={(e) => set('priority', e.target.value)}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></Field>
       </div>
       <Field label="Assign / rotate between (pick 2+ to alternate)">

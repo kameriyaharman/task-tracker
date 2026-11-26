@@ -21,8 +21,10 @@ export default function Punch() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const [tries, setTries] = useState(0);
   useEffect(() => {
     (async () => {
+      setLocErr(null); setPos(null);
       try {
         const p = await currentPosition();
         setPos(p);
@@ -32,7 +34,7 @@ export default function Punch() {
         if (!near && !out) setMode('field');
       } catch (e) { setLocErr((e as Error).message); }
     })();
-  }, [out]);
+  }, [out, tries]);
 
   const submit = async () => {
     setBusy(true); setErr(null);
@@ -63,6 +65,7 @@ export default function Punch() {
         <T style={{ flex: 1 }} color={locErr ? C.red : fence ? C.green : C.text}>
           {locErr ?? (!pos ? 'Getting location…' : fence ? `${fence} · ${t('inside_geofence')} ✓ · ${timeOf(sqlDateTime(new Date()))}` : `Outside office geofence · ${timeOf(sqlDateTime(new Date()))}`)}
         </T>
+        {locErr && <Pressable onPress={() => setTries((n) => n + 1)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: C.gold }}><Text style={{ color: '#fff', fontWeight: '700' }}>Retry</Text></Pressable>}
       </Card>
       {!out && mode === 'office' && pos && !fence && <T muted style={{ marginTop: 8 }}>You're not at an office location — choose “{t('field')}” if you're on a visit.</T>}
       {!out && mode === 'field' && me?.location_consent && <T muted style={{ marginTop: 8 }}>Your location will be shared with your manager until you punch out.</T>}

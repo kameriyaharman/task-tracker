@@ -1,3 +1,6 @@
+import { dmy } from '../format';
+import { DateInput } from '../dateinput';
+import { Select } from '../erp/common';
 import { useState } from 'react';
 import { api } from '../api';
 import { Topbar } from '../Layout';
@@ -73,11 +76,11 @@ function GoalForm({ goal, parents, onClose, onSaved }: { goal: any; parents: any
         <Field label="Scope"><select value={f.scope} onChange={(e) => set('scope', e.target.value)}><option value="company">Company</option><option value="department">Department</option></select></Field>
         <Field label="Department"><select value={f.department_id} onChange={(e) => set('department_id', e.target.value)}><option value="">All</option>{depts.data?.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></Field>
         <Field label="How progress is counted"><select value={f.measure} onChange={(e) => set('measure', e.target.value)}><option value="manual">By hand (update)</option><option value="tasks">From linked tasks</option></select></Field>
-        <Field label="Owner (who updates it)"><select value={f.owner_id} onChange={(e) => set('owner_id', e.target.value)}><option value="">—</option>{people.data?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+        <Field label="Owner (who updates it)"><Select value={f.owner_id} onChange={(v) => set('owner_id', v)} options={people.data ?? []} /></Field>
         {f.measure === 'manual' && <Field label="Target (number to reach)"><input type="number" value={f.target_value} onChange={(e) => set('target_value', e.target.value)} /></Field>}
         {f.measure === 'manual' && <Field label="Achieved so far"><input type="number" value={f.current_value} onChange={(e) => set('current_value', e.target.value)} /></Field>}
-        <Field label="Start date"><input type="date" value={f.start_date} onChange={(e) => set('start_date', e.target.value)} /></Field>
-        <Field label="End date"><input type="date" value={f.end_date} onChange={(e) => set('end_date', e.target.value)} /></Field>
+        <Field label="Start date"><DateInput value={f.start_date} onChange={(e) => set('start_date', e.target.value)} /></Field>
+        <Field label="End date"><DateInput value={f.end_date} onChange={(e) => set('end_date', e.target.value)} /></Field>
         <Field label="Unit (₹, deals, %…)"><input value={f.unit} onChange={(e) => set('unit', e.target.value)} /></Field>
         <Field label="Period"><input value={f.period_label} onChange={(e) => set('period_label', e.target.value)} placeholder="Q4 (Oct–Dec)" /></Field>
         <Field label="Status"><select value={f.status} onChange={(e) => set('status', e.target.value)}><option value="on_track">On track</option><option value="at_risk">At risk</option><option value="behind">Behind</option><option value="done">Done</option></select></Field>
@@ -91,7 +94,7 @@ function GoalForm({ goal, parents, onClose, onSaved }: { goal: any; parents: any
             <input className="input" style={{ flex: 1, minWidth: 140 }} value={pnote} onChange={(e) => setPnote(e.target.value)} placeholder="Note (3 deals closed today)" />
             <button className="btn sm" disabled={!add} onClick={() => api('/goals/' + goal.id + '/progress', { body: { add: +add, note: pnote } }).then(onSaved).catch((e) => setErr(e.message))}>Add</button>
           </div>
-          {goal.updates?.map((u: any, i: number) => <div key={i} className="muted" style={{ fontSize: 12, marginTop: 6 }}>{u.created_at.slice(0, 10)} · {u.user_name} · {+u.added >= 0 ? '+' : ''}{u.added} → {u.new_value}{u.note ? ` · ${u.note}` : ''}</div>)}
+          {goal.updates?.map((u: any, i: number) => <div key={i} className="muted" style={{ fontSize: 12, marginTop: 6 }}>{dmy(u.created_at)} · {u.user_name} · {+u.added >= 0 ? '+' : ''}{u.added} → {u.new_value}{u.note ? ` · ${u.note}` : ''}</div>)}
         </div>
       )}
       <div className="row">

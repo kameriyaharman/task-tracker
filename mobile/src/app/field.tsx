@@ -5,7 +5,8 @@ import { useAuth } from '../lib/auth';
 import { useApi } from '../lib/hooks';
 import { takePhoto } from '../components/media';
 import { currentPosition } from '../lib/tracking';
-import { Bar, Button, Card, Chips, ErrorText, Input, Row, Screen, Section, T } from '../components/ui';
+import { Bar, Button, Card, Chips, DateField, ErrorText, Input, Row, Screen, Section, T } from '../components/ui';
+import { dateOf, sqlDate } from '../lib/format';
 import { C } from '../lib/theme';
 import { rs } from '../lib/erp';
 
@@ -119,14 +120,14 @@ export default function Field() {
         <>
           <Card style={{ marginBottom: 10 }}>
             <T b>Add to my plan</T>
-            <Input label="Date (YYYY-MM-DD)" value={np.plan_date} onChangeText={(x) => setNp({ ...np, plan_date: x })} placeholder={new Date().toISOString().slice(0, 10)} />
+            <DateField label="Date" value={np.plan_date} onChange={(x) => setNp({ ...np, plan_date: x })} />
             <Input label="Area / place" value={np.area} onChangeText={(x) => setNp({ ...np, area: x })} />
             <Input label="Whom to meet" value={np.who_to_meet} onChangeText={(x) => setNp({ ...np, who_to_meet: x })} />
             <Button small title="Add" disabled={!np.plan_date || !np.area} onPress={() => run(async () => { await api('/marketing/plan', { body: np }); setNp({ plan_date: '', area: '', who_to_meet: '' }); }, 'Added to plan')} />
           </Card>
           {Array.from(new Set<string>(plan.data.plans.map((p: any) => p.plan_date))).map((d) => (
             <Card key={d} style={{ marginBottom: 6 }}>
-              <T b>{d}{d === new Date().toISOString().slice(0, 10) ? ' · today' : ''}</T>
+              <T b>{dateOf(d)}{d === sqlDate(new Date()) ? ' · today' : ''}</T>
               {plan.data.plans.filter((p: any) => p.plan_date === d).map((p: any) => <T key={p.id} muted>📍 {p.area}{p.who_to_meet ? ` — ${p.who_to_meet}` : ''}</T>)}
             </Card>
           ))}

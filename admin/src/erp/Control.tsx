@@ -1,3 +1,4 @@
+import { DateInput } from '../dateinput';
 import { useEffect, useState } from 'react';
 import { api, downloadUrl } from '../api';
 import { useAuth } from '../auth';
@@ -246,8 +247,8 @@ export function ErpReports() {
       <Topbar title="Business reports" action={<a className="btn ghost" href={downloadUrl(`/erp/reports/${type}`, { from, to, format: 'csv' })}><Icon name="download" /> Excel (CSV)</a>} />
       <div className="chips">
         <select value={type} onChange={(e) => setType(e.target.value)}>{REPORTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
-        <input type="date" className="input" value={from} onChange={(e) => setFrom(e.target.value)} />
-        <input type="date" className="input" value={to} onChange={(e) => setTo(e.target.value)} />
+        <DateInput className="input" value={from} onChange={(e) => setFrom(e.target.value)} />
+        <DateInput className="input" value={to} onChange={(e) => setTo(e.target.value)} />
         <span className="muted">Customer / vendor outstanding & aging are under Accounts.</span>
       </div>
       <ErrorBox msg={r.error} />

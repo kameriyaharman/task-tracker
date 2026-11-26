@@ -1,3 +1,4 @@
+import { dmy, dmyt } from '../format';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api } from '../api';
 import { useRecorder, VoiceNote } from '../voice';
@@ -32,9 +33,8 @@ export const qty = (n: number | string | null | undefined) => {
   const v = Number(n ?? 0);
   return Number.isInteger(v) ? v.toLocaleString('en-IN') : v.toLocaleString('en-IN', { maximumFractionDigits: 3 });
 };
-export const d8 = (s?: string | null) => (s ? new Date(s.replace(' ', 'T')).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' }) : '—');
-export const dt = (s?: string | null) =>
-  s ? new Date(s.replace(' ', 'T')).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '—';
+export const d8 = (s?: string | null) => dmy(s);
+export const dt = (s?: string | null) => dmyt(s);
 
 const STATUS: Record<string, [string, string]> = {
   draft: ['Draft', ''], pending_approval: ['Waiting approval', 'pending'], approved: ['Approved', 'approved'], rejected: ['Rejected', 'rejected'],
@@ -92,14 +92,56 @@ export function useList<T = any>(entity: string, q?: Record<string, unknown>) {
   return useApi<T[]>(`/erp/masters/${entity}`, q);
 }
 
+/**
+ * Dropdown you can type into: click shows the list, typing filters it (name, code, phone…),
+ * arrow keys + Enter pick. Tiny lists (≤ 3) stay a plain select.
+ */
 export function Select({ value, onChange, options, placeholder = '—', disabled }: {
-  value: any; onChange: (v: string) => void; options: { id: any; name: string }[]; placeholder?: string; disabled?: boolean;
+  value: any; onChange: (v: string) => void; options: { id: any; name: string; sub?: string }[]; placeholder?: string; disabled?: boolean;
 }) {
+  const [q, setQ] = useState('');
+  const [open, setOpen] = useState(false);
+  const [hi, setHi] = useState(0);
+  const cur = options.find((o) => String(o.id) === String(value ?? ''));
+  const hits = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    const all = s ? options.filter((o: any) => `${o.name} ${o.sub ?? ''} ${o.code ?? ''} ${o.mobile ?? ''} ${o.business_name ?? ''} ${o.sku ?? ''}`.toLowerCase().includes(s)) : options;
+    return all.slice(0, 200);
+  }, [q, options]);
+  if (options.length <= 3) {
+    return (
+      <select value={value ?? ''} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
+        <option value="">{placeholder}</option>
+        {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+      </select>
+    );
+  }
+  const pick = (o: { id: any } | null) => { onChange(o ? String(o.id) : ''); setQ(''); setOpen(false); };
   return (
-    <select value={value ?? ''} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
-      <option value="">{placeholder}</option>
-      {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-    </select>
+    <div style={{ position: 'relative' }}>
+      <input className="input combo" disabled={disabled} value={open ? q : cur?.name ?? ''} placeholder={cur ? cur.name : `${placeholder === '—' ? 'Choose' : placeholder} — type to search`}
+        onFocus={() => { setOpen(true); setQ(''); setHi(0); }} onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onChange={(e) => { setQ(e.target.value); setOpen(true); setHi(0); }}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowDown') { e.preventDefault(); setHi((h) => Math.min(h + 1, hits.length - 1)); }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); setHi((h) => Math.max(h - 1, 0)); }
+          else if (e.key === 'Enter' && open && hits[hi]) { e.preventDefault(); pick(hits[hi]); (e.target as HTMLInputElement).blur(); }
+          else if (e.key === 'Escape') setOpen(false);
+        }} style={{ width: '100%' }} />
+      <span className="combo-caret">▾</span>
+      {open && (
+        <div className="pop-list">
+          {value && <div className="pop-item muted" onMouseDown={() => pick(null)}>{placeholder === '—' ? '— clear —' : placeholder}</div>}
+          {hits.map((o, i) => (
+            <div key={o.id} className={`pop-item${i === hi ? ' on' : ''}${String(o.id) === String(value) ? ' sel' : ''}`} onMouseDown={() => pick(o)} onMouseEnter={() => setHi(i)}>
+              <span>{o.name}</span>{o.sub && <span className="muted">{o.sub}</span>}
+            </div>
+          ))}
+          {!hits.length && <div className="pop-item muted">No match for “{q}”</div>}
+          {options.length > 200 && hits.length === 200 && <div className="pop-item muted">Type more to narrow…</div>}
+        </div>
+      )}
+    </div>
   );
 }
 

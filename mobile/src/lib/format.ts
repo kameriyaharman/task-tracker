@@ -13,11 +13,22 @@ export const timeOf = (s?: string | null) => {
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+const p2 = (n: number) => String(n).padStart(2, '0');
+/** DD-MM-YYYY — the date format used everywhere */
 export const dateOf = (s?: string | null | Date) => {
-  const d = s instanceof Date ? s : parseDate(s);
-  return d ? `${d.getDate()} ${MONTHS[d.getMonth()]}` : '';
+  const d = s instanceof Date ? s : s ? new Date(s.length === 10 ? `${s}T00:00` : s.replace(' ', 'T')) : null;
+  return d && !isNaN(d.getTime()) ? `${p2(d.getDate())}-${p2(d.getMonth() + 1)}-${d.getFullYear()}` : '';
 };
-export const dayDate = (d: Date) => `${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+export const dmy = dateOf;
+/** 'DD-MM-YYYY' (also / or .) -> 'YYYY-MM-DD', '' if invalid */
+export const ymd = (s: string) => {
+  const m = (s ?? '').trim().match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/);
+  if (!m) return '';
+  const y = m[3].length === 2 ? `20${m[3]}` : m[3];
+  const d = new Date(+y, +m[2] - 1, +m[1]);
+  return d.getDate() === +m[1] && d.getMonth() === +m[2] - 1 ? `${y}-${p2(+m[2])}-${p2(+m[1])}` : '';
+};
+export const dayDate = (d: Date) => `${DAYS[d.getDay()]}, ${dateOf(d)}`;
 export const monthName = (d: Date) => ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][d.getMonth()];
 
 export function dueLabel(s?: string | null, t: (k: string) => string = (k) => k) {
@@ -27,9 +38,7 @@ export function dueLabel(s?: string | null, t: (k: string) => string = (k) => k)
   const tom = new Date(now); tom.setDate(now.getDate() + 1);
   if (d.toDateString() === now.toDateString()) return `${t('today')} ${timeOf(s)}`;
   if (d.toDateString() === tom.toDateString()) return `${t('tomorrow')} ${timeOf(s)}`;
-  const diff = (d.getTime() - now.getTime()) / 86400000;
-  if (diff > 0 && diff < 6) return DAYS[d.getDay()];
-  return dateOf(d);
+  return `${dateOf(d)} ${timeOf(s)}`;
 }
 
 export const hm = (min: number) => {

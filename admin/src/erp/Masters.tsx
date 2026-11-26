@@ -1,3 +1,4 @@
+import { DateInput } from '../dateinput';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api';
@@ -201,8 +202,8 @@ function PartyForm({ kind, p, onClose, onSaved, readOnly }: { kind: 'customers' 
           <Field label="Email"><input type="email" value={f.email ?? ''} onChange={(e) => set('email', e.target.value)} /></Field>
           <Field label="GSTIN"><input value={f.gstin ?? ''} onChange={(e) => set('gstin', e.target.value.toUpperCase())} maxLength={15} /></Field>
           <Field label="PAN (optional)"><input value={f.pan ?? ''} onChange={(e) => set('pan', e.target.value.toUpperCase())} maxLength={10} placeholder="ABCDE1234F" /></Field>
-          <Field label="Date of birth"><input type="date" value={f.dob ?? ''} onChange={(e) => set('dob', e.target.value)} /></Field>
-          <Field label="Anniversary"><input type="date" value={f.anniversary ?? ''} onChange={(e) => set('anniversary', e.target.value)} /></Field>
+          <Field label="Date of birth"><DateInput value={f.dob ?? ''} onChange={(e) => set('dob', e.target.value)} /></Field>
+          <Field label="Anniversary"><DateInput value={f.anniversary ?? ''} onChange={(e) => set('anniversary', e.target.value)} /></Field>
           {isC && (
             <Field label="Customer type (decides price)">
               <div className="row" style={{ gap: 4 }}>

@@ -112,12 +112,12 @@ final class RequestController extends Controller
 
     public static function summary(array $r): string
     {
-        $fmt = fn($d) => date('j M', strtotime($d));
+        $fmt = fn($d) => date('d-m-Y', strtotime($d));
         switch ($r['type']) {
             case 'leave': return 'Leave · ' . $fmt($r['from_date']) . ($r['to_date'] !== $r['from_date'] ? '–' . $fmt($r['to_date']) : '') . ' · ' . strtolower((string) $r['leave_type_name']);
             case 'expense': return 'Expense ₹' . number_format((float) $r['amount']) . ($r['reason'] ? ' · ' . $r['reason'] : '');
             case 'extension':
-                return 'Task deadline extension · ' . $r['task_title'] . ' → ' . date('j M g A', strtotime($r['extend_to']));
+                return 'Task deadline extension · ' . $r['task_title'] . ' → ' . date('d-m-Y g:i A', strtotime($r['extend_to']));
             case 'regularise': return 'Regularise punch · ' . $fmt($r['from_date']);
         }
         return $r['type'];

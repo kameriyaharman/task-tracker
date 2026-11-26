@@ -1,3 +1,4 @@
+import { DateInput } from '../dateinput';
 import { useState } from 'react';
 import { api } from '../api';
 import { Topbar } from '../Layout';
@@ -117,7 +118,7 @@ function PersonDrawer({ uid, month, onClose }: { uid: number; month: string; onC
         })}
       </div>
       <div className="row" style={{ marginTop: 10, flexWrap: 'wrap' }}>
-        <input className="input" type="date" value={np.plan_date} onChange={(e) => setNp({ ...np, plan_date: e.target.value })} />
+        <DateInput className="input" value={np.plan_date} onChange={(e) => setNp({ ...np, plan_date: e.target.value })} />
         <input className="input" style={{ flex: 1 }} value={np.area} onChange={(e) => setNp({ ...np, area: e.target.value })} placeholder="Area / place (Sector 32 sites)" />
         <input className="input" style={{ flex: 1 }} value={np.who_to_meet} onChange={(e) => setNp({ ...np, who_to_meet: e.target.value })} placeholder="Whom to meet" />
         <button className="btn sm" disabled={!np.plan_date || !np.area} onClick={async () => { try { await api('/marketing/plan', { body: { ...np, user_id: uid } }); setNp({ plan_date: '', area: '', who_to_meet: '' }); plan.reload(); } catch (e) { setErr((e as Error).message); } }}>Add to plan</button>

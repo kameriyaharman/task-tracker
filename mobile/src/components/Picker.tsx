@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Modal, Pressable, Text, TextInput, View } from 'react-native';
 import { C } from '../lib/theme';
+import { dateOf } from '../lib/format';
 import { Avatar } from './ui';
 
 export type Option = { value: any; label: string; sub?: string; initials?: string };
@@ -69,7 +70,7 @@ export function DuePicker({ visible, value, onPick, onClose }: { visible: boolea
             </Pressable>
           ))}
         </View>
-        <Step label={d.toDateString()} onMinus={() => set((x) => x.setDate(x.getDate() - 1))} onPlus={() => set((x) => x.setDate(x.getDate() + 1))} />
+        <Step label={`${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]} ${dateOf(d)}`} onMinus={() => set((x) => x.setDate(x.getDate() - 1))} onPlus={() => set((x) => x.setDate(x.getDate() + 1))} />
         <Step label={d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} onMinus={() => set((x) => x.setMinutes(x.getMinutes() - 30))} onPlus={() => set((x) => x.setMinutes(x.getMinutes() + 30))} />
         <Pressable onPress={() => { onPick(d); onClose(); }} style={{ backgroundColor: C.gold, borderRadius: 12, padding: 14, alignItems: 'center', marginTop: 8 }}>
           <Text style={{ color: '#fff', fontWeight: '600' }}>Done</Text>

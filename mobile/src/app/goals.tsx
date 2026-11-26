@@ -1,3 +1,4 @@
+import { dateOf } from '../lib/format';
 import { useState } from 'react';
 import { Text } from 'react-native';
 import { api } from '../lib/api';
@@ -44,7 +45,7 @@ export default function Goals() {
               <Button small title="Add progress" disabled={!add} onPress={() => save(g.id)} />
             </>
           )}
-          {open === g.id && g.updates?.map((u: any, i: number) => <Text key={i} style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{u.created_at.slice(0, 10)} · {u.user_name.split(' ')[0]} +{u.added}{u.note ? ` · ${u.note}` : ''}</Text>)}
+          {open === g.id && g.updates?.map((u: any, i: number) => <Text key={i} style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{dateOf(u.created_at)} · {u.user_name.split(' ')[0]} +{u.added}{u.note ? ` · ${u.note}` : ''}</Text>)}
         </Card>
       )) : <Empty text={t('nothing_here')} />}
     </Screen>

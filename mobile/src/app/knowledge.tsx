@@ -1,3 +1,4 @@
+import { dateOf } from '../lib/format';
 import { useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { api } from '../lib/api';
@@ -42,7 +43,7 @@ export default function Knowledge() {
           <T muted style={{ fontSize: 12 }}>{k.category}{k.source_label ? ` · from ${k.source_type}` : ''}</T>
           {k.problem ? <T style={{ marginTop: 6 }} muted>Problem: {k.problem}</T> : null}
           <View style={{ backgroundColor: C.greenSoft, borderRadius: 8, padding: 8, marginTop: 6 }}><T>✅ {k.lesson}</T></View>
-          <T muted style={{ fontSize: 11, marginTop: 6 }}>{k.created_by_name} · {k.created_at.slice(0, 10)}</T>
+          <T muted style={{ fontSize: 11, marginTop: 6 }}>{k.created_by_name} · {dateOf(k.created_at)}</T>
         </Card>
       )) : <Empty text="No lessons yet" />}
     </Screen>

@@ -1,9 +1,10 @@
+import { dateOf } from './format';
 import { Text } from 'react-native';
 import { Badge } from '../components/ui';
 
 export const rs = (n: any, dec = 0) => '₹' + Number(n ?? 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec ? 2 : 0 });
 export const qty = (n: any) => { const v = Number(n ?? 0); return Number.isInteger(v) ? String(v) : v.toFixed(3).replace(/0+$/, ''); };
-export const d8 = (s?: string | null) => (s ? new Date(s.replace(' ', 'T')).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—');
+export const d8 = (s?: string | null) => dateOf(s) || '—';
 
 const MAP: Record<string, [string, string]> = {
   pending: ['pending', 'Pending'], packed: ['field', 'Packed'], dispatched: ['in_progress', 'On the way'], delivered: ['done', 'Delivered'],

@@ -4,7 +4,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { api } from '../../../lib/api';
 import { useApi } from '../../../lib/hooks';
 import { useAuth } from '../../../lib/auth';
-import { Button, Card, Chips, ErrorText, Input, Loading, Row, Screen, T } from '../../../components/ui';
+import { Button, Card, Chips, DateField, ErrorText, Input, Loading, Row, Screen, T } from '../../../components/ui';
+import { dateOf, sqlDate } from '../../../lib/format';
 import { canErp, d8, rs } from '../../../lib/erp';
 
 const OUT: [string, string][] = [['called', 'Called'], ['promise', 'Will pay'], ['no_response', 'No answer'], ['dispute', 'Dispute']];
@@ -29,7 +30,7 @@ export default function CustomerRecovery() {
     setBusy(true); setErr(null);
     try { await fn(); setNote(''); setAmount(''); setRef(''); setDate(''); st.reload(); log.reload(); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
   };
-  const quickDates: [string, string][] = [1, 2, 3, 7].map((n) => { const d = new Date(Date.now() + n * 86400000); return [d.toISOString().slice(0, 10), n === 1 ? 'Tomorrow' : d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric' })]; });
+  const quickDates: [string, string][] = [1, 2, 3, 7].map((n) => { const d = new Date(Date.now() + n * 86400000); return [sqlDate(d), n === 1 ? 'Tomorrow' : `${d.toLocaleDateString('en-IN', { weekday: 'short' })} ${dateOf(d).slice(0, 5)}`]; });
   return (
     <Screen back title={c.name} refreshing={st.loading} onRefresh={st.reload}>
       <ErrorText msg={err} />
@@ -51,7 +52,7 @@ export default function CustomerRecovery() {
               <>
                 <T muted size={12} style={{ marginTop: 10 }}>Will pay on</T>
                 <Chips items={quickDates} value={date} onChange={setDate} />
-                <Input label="Or date (YYYY-MM-DD)" value={date} onChangeText={setDate} />
+                <DateField label="Or date" value={date} onChange={setDate} />
                 <Input label="Amount" keyboardType="numeric" value={amount} onChangeText={setAmount} />
               </>
             )}
