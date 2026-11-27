@@ -1,0 +1,67 @@
+# Push to main → build admin panel → publish the ready-to-serve site to the `deploy-bigrock` branch.
+# BigRock (keshavkunj.com) has a git checkout of that branch as its document root and pulls it
+# every 2 minutes from cron (docker/bigrock-cron.sh). No FTP or secrets needed.
+#   /      admin panel (React build)
+#   /api/  backend/ (PHP API) — api/config/config.php and api/storage/ exist only on the server
+name: Build for BigRock (keshavkunj.com)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "admin/**"
+      - "docker/bigrock-cron.sh"
+      - ".github/workflows/deploy-bigrock.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-bigrock
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: admin/package-lock.json
+
+      - name: Build admin panel
+        working-directory: admin
+        env:
+          VITE_API_URL: /api
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: Assemble site
+        run: |
+          mkdir -p site/api
+          cp -r admin/dist/. site/
+          rsync -a --exclude 'storage/' --exclude 'config/config.php' backend/ site/api/
+          mkdir -p site/api/storage
+          cp backend/storage/.htaccess site/api/storage/.htaccess
+          cp docker/bigrock-cron.sh site/bigrock-cron.sh
+          # never serve the git checkout or the cron script
+          { echo 'RedirectMatch 404 ^/(\.git|bigrock-cron\.sh)'; cat site/.htaccess; } > site/.htaccess.new && mv site/.htaccess.new site/.htaccess
+          printf 'api/config/config.php\napi/storage/*\n!api/storage/.htaccess\n' > site/.gitignore
+
+      - name: Publish to deploy-bigrock branch
+        env:
+          MSG: ${{ github.event.head_commit.message || 'manual run' }}
+        run: |
+          cd site
+          git init -q -b deploy-bigrock
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Build ${GITHUB_SHA::7}: ${MSG%%$'\n'*}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" deploy-bigrock
