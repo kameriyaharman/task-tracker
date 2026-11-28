@@ -12,6 +12,7 @@ on:
       - "backend/**"
       - "admin/**"
       - "docker/bigrock-cron.sh"
+      - "docker/app-download.html"
       - ".github/workflows/deploy-bigrock.yml"
   workflow_dispatch:
 
@@ -43,6 +44,8 @@ jobs:
           npm run build
 
       - name: Assemble site
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p site/api
           cp -r admin/dist/. site/
@@ -50,6 +53,11 @@ jobs:
           mkdir -p site/api/storage
           cp backend/storage/.htaccess site/api/storage/.htaccess
           cp docker/bigrock-cron.sh site/bigrock-cron.sh
+          # Android app download page at /app/ (APK comes from the "apk-latest" release, built by build-apk.yml)
+          mkdir -p site/app
+          cp docker/app-download.html site/app/index.html
+          gh release download apk-latest -p keshav.apk -D site/app || echo "no APK release yet"
+          printf 'AddType application/vnd.android.package-archive .apk\n<IfModule mod_headers.c>\n<Files "keshav.apk">\nHeader set Content-Disposition "attachment; filename=keshav.apk"\n</Files>\n</IfModule>\n' > site/app/.htaccess
           # never serve the git checkout or the cron script
           { echo 'RedirectMatch 404 ^/(\.git|bigrock-cron\.sh)'; cat site/.htaccess; } > site/.htaccess.new && mv site/.htaccess.new site/.htaccess
           printf 'api/config/config.php\napi/storage/*\n!api/storage/.htaccess\n' > site/.gitignore

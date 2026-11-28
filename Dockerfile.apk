@@ -6,7 +6,7 @@ WORKDIR /app
 COPY mobile/package.json mobile/package-lock.json mobile/.npmrc ./
 RUN npm ci --legacy-peer-deps --no-audit --no-fund
 COPY mobile/ ./
-ARG API_URL=https://keshav-web-production.up.railway.app/api
+ARG API_URL=https://keshavkunj.com/api
 # Optional (diagnostic builds): alternative JS entry, app id and name
 ARG APP_ENTRY=
 ARG APP_ID=

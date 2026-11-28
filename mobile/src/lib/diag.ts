@@ -6,7 +6,7 @@
  */
 import { Platform } from 'react-native';
 
-const API: string = (process.env.EXPO_PUBLIC_API_URL || 'https://keshav-web-production.up.railway.app/api').replace(/\/$/, '');
+const API: string = (process.env.EXPO_PUBLIC_API_URL || 'https://keshavkunj.com/api').replace(/\/$/, '');
 const sid = Math.random().toString(36).slice(2, 8);
 const started = Date.now();
 

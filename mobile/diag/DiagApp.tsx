@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
-const API = (process.env.EXPO_PUBLIC_API_URL || 'https://keshav-web-production.up.railway.app/api').replace(/\/$/, '');
+const API = (process.env.EXPO_PUBLIC_API_URL || 'https://keshavkunj.com/api').replace(/\/$/, '');
 const sid = 'diag-' + Math.random().toString(36).slice(2, 6);
 
 async function report(event: string, detail?: string) {

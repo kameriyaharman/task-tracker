@@ -97,13 +97,13 @@
       [
         "./plugins/withNativeCrashReporter",
         {
-          "apiUrl": "https://keshav-web-production.up.railway.app/api"
+          "apiUrl": "https://keshavkunj.com/api"
         }
       ],
       "./plugins/withNoR8Minify"
     ],
     "extra": {
-      "apiUrl": "https://keshav-web-production.up.railway.app/api",
+      "apiUrl": "https://keshavkunj.com/api",
       "eas": {
         "projectId": ""
       }

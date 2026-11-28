@@ -192,7 +192,7 @@ function PinsDrawer({ people, onClose }: { people: any[]; onClose: () => void })
     setErr(null);
     try { setRows(await api<any[]>('/employees/pins', { body: { only_missing: onlyMissing } })); } catch (e) { setErr((e as Error).message); }
   };
-  const msg = (r: any) => `Namaste ${r.name}, Keshav app login: mobile ${r.mobile}, PIN ${r.pin}. App: https://keshav-apk-production.up.railway.app`;
+  const msg = (r: any) => `Namaste ${r.name}, Keshav app login: mobile ${r.mobile}, PIN ${r.pin}. App: https://keshavkunj.com/app/`;
   return (
     <Drawer title="App login PINs" onClose={onClose}>
       <ErrorBox msg={err} />
