@@ -48,6 +48,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p site/api
+          echo "${GITHUB_SHA::7} built $(date -u '+%F %T') UTC" > site/api/VERSION
           cp -r admin/dist/. site/
           rsync -a --exclude 'storage/' --exclude 'config/config.php' backend/ site/api/
           mkdir -p site/api/storage

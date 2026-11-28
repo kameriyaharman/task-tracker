@@ -9,6 +9,7 @@ final class HealthController extends Controller
     {
         $db = false;
         try { $db = (bool) Db::value('SELECT 1'); } catch (\Throwable $e) {}
-        return ['app' => 'Keshav API', 'version' => '1.0.0', 'db' => $db, 'time' => date('c')];
+        $build = @file_get_contents(dirname(__DIR__, 2) . '/VERSION');
+        return ['app' => 'Keshav API', 'version' => '1.0.0', 'build' => $build ? trim($build) : null, 'db' => $db, 'time' => date('c')];
     }
 }
