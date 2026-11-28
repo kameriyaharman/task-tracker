@@ -119,4 +119,15 @@ final class BusinessController extends Base
         $p['brands'] = array_column(Db::all('SELECT name FROM brands WHERE company_id = ? AND is_active = 1 ORDER BY name LIMIT 30', [$cid]), 'name');
         return $p;
     }
+
+    /** GET /public/site — what the website's landing page shows (no login). Bank details are never included. */
+    public function publicSite(): array
+    {
+        $cid = \App\Controllers\AuthController::companyId();
+        $p = self::profileOf($cid);
+        $out = array_intersect_key($p, array_flip(['display_name', 'tagline', 'address', 'map_url', 'phone', 'whatsapp', 'email', 'hours', 'products_line', 'brands_line']));
+        $out['categories'] = array_column(Db::all('SELECT name FROM product_categories WHERE company_id = ? AND is_active = 1 ORDER BY name LIMIT 12', [$cid]), 'name');
+        $out['brands'] = array_column(Db::all('SELECT name FROM brands WHERE company_id = ? AND is_active = 1 ORDER BY name LIMIT 24', [$cid]), 'name');
+        return $out;
+    }
 }

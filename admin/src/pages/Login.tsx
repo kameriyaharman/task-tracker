@@ -26,7 +26,7 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <div className="login-banner">
-        <img src="/brand-banner.jpg" alt="Keshav Home Solution — Construction Solution · Hardware · Paint · Electrical" />
+        <img src={`${import.meta.env.BASE_URL}brand-banner.jpg`} alt="Keshav Home Solution — Construction Solution · Hardware · Paint · Electrical" />
       </div>
       <form className="login" onSubmit={submit}>
         <Brand big light={false} />

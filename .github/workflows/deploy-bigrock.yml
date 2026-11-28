@@ -13,6 +13,8 @@ on:
       - "admin/**"
       - "docker/bigrock-cron.sh"
       - "docker/app-download.html"
+      - "docker/landing.html"
+      - "docker/*.htaccess"
       - ".github/workflows/deploy-bigrock.yml"
   workflow_dispatch:
 
@@ -41,7 +43,7 @@ jobs:
           VITE_API_URL: /api
         run: |
           npm ci --no-audit --no-fund
-          npm run build
+          npm run build -- --base=/admin/
 
       - name: Assemble site
         env:
@@ -49,7 +51,13 @@ jobs:
         run: |
           mkdir -p site/api
           echo "${GITHUB_SHA::7} built $(date -u '+%F %T') UTC" > site/api/VERSION
-          cp -r admin/dist/. site/
+          # admin panel lives at /admin, the landing page at /
+          mkdir -p site/admin
+          cp -r admin/dist/. site/admin/
+          cp docker/landing.html site/index.html
+          cp admin/public/brand-banner.jpg admin/public/favicon.svg site/
+          cp docker/admin.htaccess site/admin/.htaccess
+          cp docker/root.htaccess site/.htaccess
           rsync -a --exclude 'storage/' --exclude 'config/config.php' backend/ site/api/
           mkdir -p site/api/storage
           cp backend/storage/.htaccess site/api/storage/.htaccess
@@ -60,7 +68,6 @@ jobs:
           gh release download apk-latest -p keshav.apk -D site/app || echo "no APK release yet"
           printf 'AddType application/vnd.android.package-archive .apk\n<IfModule mod_headers.c>\n<Files "keshav.apk">\nHeader set Content-Disposition "attachment; filename=keshav.apk"\n</Files>\n</IfModule>\n' > site/app/.htaccess
           # never serve the git checkout or the cron script
-          { echo 'RedirectMatch 404 ^/(\.git|bigrock-cron\.sh)'; cat site/.htaccess; } > site/.htaccess.new && mv site/.htaccess.new site/.htaccess
           printf 'api/config/config.php\napi/storage/*\n!api/storage/.htaccess\n' > site/.gitignore
 
       - name: Publish to deploy-bigrock branch

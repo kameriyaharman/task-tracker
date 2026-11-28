@@ -90,7 +90,7 @@ export function PublicCard({ token }: { token: string }) {
   return (
     <div className="pub">
       <div className="pub-card vcard">
-        <div className="vc-top"><img src="/favicon.svg" alt="" onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} /><h1>{c.display_name}</h1><div>{c.tagline}</div></div>
+        <div className="vc-top"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} /><h1>{c.display_name}</h1><div>{c.tagline}</div></div>
         <div className="vc-actions">
           {c.phone && <a href={`tel:${c.phone}`}>📞<span>Call</span></a>}
           {wa && <a href={`https://wa.me/91${wa}`}>💬<span>WhatsApp</span></a>}

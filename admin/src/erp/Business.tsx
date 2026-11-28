@@ -20,7 +20,7 @@ export default function Business() {
   const a = useAction();
   useEffect(() => { if (data) setF(data); }, [data]);
   if (!f) return <><Topbar title="Business profile & digital card" /><Loading /></>;
-  const cardUrl = `${window.location.origin}/card/${f.card_token}`;
+  const cardUrl = `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, '')}/card/${f.card_token}`;
   const waText = `${f.display_name}${f.tagline ? `\n${f.tagline}` : ''}\n${f.address ?? ''}\n📞 ${f.phone ?? ''}\nView our card (location, bank / UPI, products): ${cardUrl}`;
   return (
     <>

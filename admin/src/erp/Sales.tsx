@@ -154,7 +154,7 @@ export function SalesDetail() {
   const w = can(meta, 'sales', true);
   const balance = Number(s.total) - Number(s.paid_amount);
   const company = s.profile?.display_name || s.company?.name || 'Keshav Home Solution';
-  const share = () => a.run(async () => { const r = await api<any>(`/erp/sales/${id}/share`, { body: { base: window.location.origin } }); window.open(r.wa, '_blank'); reload(); });
+  const share = () => a.run(async () => { const r = await api<any>(`/erp/sales/${id}/share`, { body: { base: window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, '') } }); window.open(r.wa, '_blank'); reload(); });
   const isDraft = ['draft', 'rejected'].includes(s.status);
   const locked = !isDraft;
   return (
@@ -215,7 +215,7 @@ export function SalesDetail() {
       {s.deliveries.length > 0 && (
         <div className="card no-print" style={{ marginTop: 12 }}>
           <h3 className="between">Delivery {s.deliveries.some((d: any) => d.status === 'delivered') && <button className="btn ghost sm wa" onClick={() => a.run(async () => {
-            const r = await api<any>(`/erp/sales/${id}/share`, { body: { base: window.location.origin } });
+            const r = await api<any>(`/erp/sales/${id}/share`, { body: { base: window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, '') } });
             const mob = String(s.party_mobile ?? s.customer_mobile ?? '').replace(/\D/g, '');
             window.open(`https://wa.me/${mob.length === 10 ? '91' + mob : mob}?text=${encodeURIComponent(`Namaste ${s.party_name} ji, your material for bill ${s.doc_no} has been delivered. Thank you!\nBill & payment: ${r.url}\n— ${company}`)}`, '_blank');
           })}>Tell customer: delivered</button>}</h3>
