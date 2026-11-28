@@ -1,0 +1,6 @@
+AddType application/vnd.android.package-archive .apk
+<IfModule mod_headers.c>
+<Files "keshav.apk">
+Header set Content-Disposition "attachment; filename=keshav.apk"
+</Files>
+</IfModule>

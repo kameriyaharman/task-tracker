@@ -1,0 +1,12 @@
+# keshavkunj.com — landing page at /, admin panel at /admin/, API at /api/, app download at /app/
+Options -Indexes
+DirectoryIndex index.html
+RedirectMatch 404 ^/(\.git|bigrock-cron\.sh)
+RewriteEngine On
+# share links made before the admin moved to /admin
+RewriteRule ^(p|card)/(.*)$ /admin/$1/$2 [R=301,L]
+# any other old admin address (/tasks, /erp/...) -> same page under /admin
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/(api|app|admin)(/|$)
+RewriteRule ^(.+)$ /admin/$1 [R=302,L]

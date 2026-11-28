@@ -1,0 +1,10 @@
+# Used when the whole backend/ folder is uploaded as public_html/api.
+# Everything is routed into public/index.php; src/, config/, storage/ are never served.
+Options -Indexes
+RewriteEngine On
+
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+RewriteRule ^(src|config|storage|database|cron)(/|$) - [F,L]
+RewriteRule ^(.*)$ public/index.php [QSA,L]
