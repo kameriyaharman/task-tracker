@@ -264,7 +264,6 @@ $r->get('/tally/pending', [E\TallyController::class, 'pending'], 'public');
 $r->get('/public/doc/{token}', [E\BusinessController::class, 'publicDoc'], 'public');
 $r->post('/public/doc/{token}', [E\BusinessController::class, 'publicDecide'], 'public');
 $r->get('/public/card/{token}', [E\BusinessController::class, 'publicCard'], 'public');
-$r->post('/ops/go-live-reset', [C\OpsController::class, 'reset'], 'public');
 $r->get('/public/site', [E\BusinessController::class, 'publicSite'], 'public');
 $r->get('/erp/business-profile', [E\BusinessController::class, 'profile']);
 $r->patch('/erp/business-profile', [E\BusinessController::class, 'saveProfile']);
